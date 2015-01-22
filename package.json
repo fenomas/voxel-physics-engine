@@ -1,0 +1,17 @@
+{
+  "name": "voxel-physics-engine",
+  "version": "0.0.1",
+  "description": "Simple but physical engine for voxeljs",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "voxeljs", "physics", "engine"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "collide-3d-tilemap": "^1.0.0"
+  }
+}
