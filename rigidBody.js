@@ -13,11 +13,12 @@ module.exports = RigidBody
 */
 
 
-function RigidBody(avatar, dimensions) {
+function RigidBody(avatar, _aabb) {
   this.avatar = avatar
-  this.dimensions = dimensions
+  this.aabb = new aabb(_aabb.base, _aabb.vec) // clone
   this.velocity = vec3.create()
   this.resting = [ false, false, false ]
+  // TODO: make engine use these:
   this.uFriction = .1
   this.restitution = .5
   // internals
@@ -28,16 +29,13 @@ function RigidBody(avatar, dimensions) {
   this.rotation = { x:0, y:0, z:0 }
 }
 
-RigidBody.prototype.aabb = function() {
-  // from: https://github.com/chrisdickinson/voxel-physical/blob/master/index.js
-  var pos = this.avatar.position
-  var d = this.dimensions
-  return aabb(
-    [pos.x - (d[0]/2), pos.y, pos.z - (d[2]/2)],
-    this.dimensions
-  )
+RigidBody.prototype.setPosition = function(p) {
+  vec3.subtract(p,p,this.aabb.base)
+  this.aabb.translate(p)
 }
-
+RigidBody.prototype.getPosition = function() {
+  return Array.prototype.slice.call( this.aabb.base ) 
+}
 RigidBody.prototype.applyForce = function(f) {
   vec3.add( this._forces, this._forces, f )
 }

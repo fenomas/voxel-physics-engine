@@ -44,10 +44,10 @@ function Physics(game, opts) {
  *    ADDING AND REMOVING RIGID BODIES
 */
 
-Physics.prototype.addBody = function(avatar, dimensions) {
+Physics.prototype.addBody = function(avatar, _aabb) {
   // for backwards compatibility, right new default dims to player size
-  dimensions = dimensions || [ 2/3, 1.5, 2/3 ]
-  var b = new RigidBody(avatar, dimensions)
+  _aabb = _aabb || new aabb( [0,22,0], [2/3, 1.5, 2/3] )
+  var b = new RigidBody(avatar, _aabb)
   this.bodies.push(b)
   return b
 }
@@ -94,7 +94,7 @@ Physics.prototype.tick = function(dt) {
     vec3.scale( dv, a, dt )
     vec3.add  ( b.velocity, b.velocity, dv )
     
-    // pseudo-physical friction for now - v1 *= drag
+    // pseudo-physical friction for now: v1 *= drag
     var drag = (onGround) ? 0.8 : 0.98
     vec3.scale( b.velocity, b.velocity, drag )
     
@@ -106,37 +106,39 @@ Physics.prototype.tick = function(dt) {
     vec3.set( b._impulses, 0, 0, 0 )
 
     // change dx into world coords - TODO: this will need to be undone
-    vecSetXYZ(world_x0, b.avatar.position)
+//    vecSetXYZ(world_x0, b.avatar.position)
 
-    b.avatar.translateX( dx[0] )
-    b.avatar.translateY( dx[1] )
-    b.avatar.translateZ( dx[2] )
-    vecSetXYZ(world_x1, b.avatar.position)
-    vec3.subtract(world_dx, world_x1, world_x0)
+//    b.avatar.translateX( dx[0] )
+//    b.avatar.translateY( dx[1] )
+//    b.avatar.translateZ( dx[2] )
+//    vecSetXYZ(world_x1, b.avatar.position)
+    
+//    vec3.subtract(world_dx, world_x1, world_x0)
 
     // collisions
-    var bb = b.aabb()
 
-    this.collideWorld( bb, world_dx, function hit(axis, tile, coords, dir, edge) {
+//    this.collideWorld( bb, world_dx, function hit(axis, tile, coords, dir, edge) {
+    this.collideWorld( b.aabb, dx, function hit(axis, tile, coords, dir, edge) {
       if (!tile) return false
-      if (Math.abs(world_dx[axis]) < Math.abs(edge)) {
-        return
-      }
-      world_dx[axis] = edge
+      if (Math.abs(dx[axis]) < Math.abs(edge)) return
+      dx[axis] = edge
       b.velocity[axis] = 0
       b.resting[axis] = dir
       return true
     })
+    
+//    b.avatar.position.x = world_x0[0]
+//    b.avatar.position.y = world_x0[1]
+//    b.avatar.position.z = world_x0[2]
+//
+//    b.avatar.position.x += world_dx[0]
+//    b.avatar.position.y += world_dx[1]
+//    b.avatar.position.z += world_dx[2]
+    
+    // update body's position
+    b.aabb.translate( dx )
 
-    b.avatar.position.x = world_x0[0]
-    b.avatar.position.y = world_x0[1]
-    b.avatar.position.z = world_x0[2]
-
-    b.avatar.position.x += world_dx[0]
-    b.avatar.position.y += world_dx[1]
-    b.avatar.position.z += world_dx[2]
-
-//    _game.pin({y:b.avatar.position.y})
+//    _game.pin(_game.buttons)
   }
 
 }
