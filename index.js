@@ -13,8 +13,8 @@ module.exports = function(game, opts) {
 
 var _game
 var defaults = {
-  gravity: [0, -9.8 , 0]
-  , friction: 0
+  gravity: [0, -18, 0]
+  , airFriction: 0.995
 
 }
 
@@ -27,6 +27,7 @@ function Physics(game, opts) {
   opts = extend( {}, defaults, opts )
 
   this.gravity = opts.gravity
+  this.airFriction = opts.airFriction
   this.bodies = []
 
   // collision function - TODO: abstract this into a setter?
@@ -69,7 +70,7 @@ var b, i, len
 var world_x0 = vec3.create()
 ,  world_x1 = vec3.create()
 ,  world_dx = vec3.create()
-,  temp = vec3.create()
+,  friction = vec3.create()
 ,  a = vec3.create()
 ,  dv = vec3.create()
 ,  dx = vec3.create()
@@ -79,88 +80,70 @@ Physics.prototype.tick = function(dt) {
   dt = dt/1000
   for(i=0, len=this.bodies.length; i<len; ++i) {
     b = this.bodies[i]
-    b.resting = [0,0,0]
     var onGround = (b.resting[1] < 0)
+    b.resting = [0,0,0]
 
     // semi-implicit Euler integration
-    
+
     // a = f/m + gravity
     vec3.scale( a, b._forces, 1/b._mass )
     vec3.add  ( a, a, this.gravity )
-    
+
     // v1 = v0 + i/m + a*dt
     vec3.scale( dv, b._impulses, 1/b._mass )
     vec3.add  ( b.velocity, b.velocity, dv )
     vec3.scale( dv, a, dt )
     vec3.add  ( b.velocity, b.velocity, dv )
-    
-    // pseudo-physical friction for now: v1 *= drag
-    var drag = (onGround) ? 0.8 : 0.98
-    vec3.scale( b.velocity, b.velocity, drag )
-    
+
+    // friction
+    if (onGround) { // friction force <= - u |vel|
+      // max friction impulse = (F/m)*dt = (mg)/m*dt = u*g*dt = dt*b.friction
+      var fMax = dt * b.friction
+      // friction direction - inversed horizontal velocity
+      vec3.scale( friction, b.velocity, -1 )
+      friction[1] = 0
+      var vAmt = vec3.length(friction)
+      if (vAmt > fMax) { // slow down
+        vec3.scale( friction, friction, fMax/vAmt )
+        vec3.add( b.velocity, b.velocity, friction )
+      } else { // stop
+        b.velocity[0] = b.velocity[2] = 0
+      }
+    } else {
+      // air resistance
+      vec3.scale( b.velocity, b.velocity, this.airFriction )
+    }
+
     // x1-x0 = v1*dt
     vec3.scale( dx, b.velocity, dt )
-    
+
     // clear forces and impulses for next timestep
     vec3.set( b._forces, 0, 0, 0 )
     vec3.set( b._impulses, 0, 0, 0 )
 
-    // change dx into world coords - TODO: this will need to be undone
-//    vecSetXYZ(world_x0, b.avatar.position)
-
-//    b.avatar.translateX( dx[0] )
-//    b.avatar.translateY( dx[1] )
-//    b.avatar.translateZ( dx[2] )
-//    vecSetXYZ(world_x1, b.avatar.position)
-    
-//    vec3.subtract(world_dx, world_x1, world_x0)
-
     // collisions
-
-//    this.collideWorld( bb, world_dx, function hit(axis, tile, coords, dir, edge) {
     this.collideWorld( b.aabb, dx, function hit(axis, tile, coords, dir, edge) {
       if (!tile) return false
-      if (Math.abs(dx[axis]) < Math.abs(edge)) return
+      if (Math.abs(dx[axis]) < Math.abs(edge)) {
+        throw new Error('a')
+        return
+      }
       dx[axis] = edge
       b.velocity[axis] = 0
       b.resting[axis] = dir
+      // TODO: emit collision event (on body?) with impulse amount
       return true
     })
-    
-//    b.avatar.position.x = world_x0[0]
-//    b.avatar.position.y = world_x0[1]
-//    b.avatar.position.z = world_x0[2]
-//
-//    b.avatar.position.x += world_dx[0]
-//    b.avatar.position.y += world_dx[1]
-//    b.avatar.position.z += world_dx[2]
-    
-    // update body's position
-    b.aabb.translate( dx )
 
-//    _game.pin(_game.buttons)
+    // collide function updates b.aabb, so we're done
+
+//    _game.pin({
+//      v:b.velocity,
+//      spd:Math.sqrt(b.velocity[0]*b.velocity[0] + b.velocity[2]*b.velocity[2])
+//    })
   }
 
 }
-
-// remove this once we no longer use {x,y,z} vectors
-function vecSetXYZ(vec,obj) {
-  vec[0] = obj.x
-  vec[1] = obj.y
-  vec[2] = obj.z
-}
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

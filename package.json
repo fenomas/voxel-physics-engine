@@ -1,6 +1,6 @@
 {
   "name": "voxel-physics-engine",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "Simple but physical engine for voxeljs",
   "main": "index.js",
   "scripts": {
