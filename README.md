@@ -1,9 +1,10 @@
 # voxel-physics-engine
 An abstracted physics engine for my experimental branch of voxeljs.
 
-It's modeled loosely after 
+This adds reasonably realistic physics to voxel js.
+It replaces and is modeled loosely on 
 [voxel-physical](https://github.com/chrisdickinson/voxel-physical),
-though it works quite differently. 
+though it works quite differently and behaves more physically.
 
 ###Usage:
  1. Register rigid bodies with `addBody()`
@@ -12,5 +13,5 @@ though it works quite differently.
 
 and the engine will manage all the physics and collisions.
 
-Not really usable yet - it's still tightly coupled to several 
-other modules. Extrication is underway but gradual.
+At the moment it's tightly coupled to my experimental branch of
+voxel-engine#ndarray, and wouldn't work in standard voxeljs.
