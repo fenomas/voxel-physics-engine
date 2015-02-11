@@ -21,9 +21,10 @@ var defaults = {
 
 /* 
  *    CONSTRUCTOR - represents a world of rigid bodies.
+ * 
+ *  Takes in a getBlock(x,y,z) function to query block solidity.
 */
-function Physics(game, opts) {
-  _game = game
+function Physics(opts, getBlock) {
   opts = extend( {}, defaults, opts )
 
   this.gravity = opts.gravity
@@ -32,7 +33,7 @@ function Physics(game, opts) {
 
   // collision function - TODO: abstract this into a setter?
   this.collideWorld = collisions(
-    _game.getBlock.bind(_game),
+    getBlock,
     1,
     [Infinity, Infinity, Infinity],
     [-Infinity, -Infinity, -Infinity]
@@ -135,12 +136,7 @@ Physics.prototype.tick = function(dt) {
       return true
     })
 
-    // collide function updates b.aabb, so we're done
-
-//    _game.pin({
-//      v:b.velocity,
-//      spd:Math.sqrt(b.velocity[0]*b.velocity[0] + b.velocity[2]*b.velocity[2])
-//    })
+    // the collide function updates b.aabb, so we're done
   }
 
 }
