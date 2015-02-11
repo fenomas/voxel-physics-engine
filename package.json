@@ -22,9 +22,9 @@
   },
   "repository": {
     "type": "git",
-    "url": "   TBD   "
+    "url" : "https://github.com/andyhall/voxel-physics-engine"
   },
-  "bugs": {
-    "url": "   TBD   "
+  "bugs" : {
+    "url" : "https://github.com/andyhall/voxel-physics-engine/issues"
   }
 }

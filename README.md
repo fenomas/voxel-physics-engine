@@ -1,17 +1,20 @@
 # voxel-physics-engine
-An abstracted physics engine for my experimental branch of voxeljs.
+An abstracted physics engine for voxel game engines.
 
-This adds reasonably realistic physics to voxel js.
-It replaces and is modeled loosely on 
+This implements reasonably realistic physics for voxel games.
+It was made to work with voxel.js, but it only takes references to 
+an abstracted `getBlock(x,y,z)` function and plain vectors, 
+so it can be used with other engines. 
+
+This replaces, and is modeled very loosely on, 
 [voxel-physical](https://github.com/chrisdickinson/voxel-physical),
 though it works quite differently and behaves more physically.
 
 ###Usage:
- 1. Register rigid bodies with `addBody()`
- 1. Control them with `body.addImpulse[0,1,0]` and such
+ 1. Create engine and supply a `getBlock(x,y,z)`-like function (which should return true when block xyz is solid)
+ 1. Register rigid bodies with `var body = addBody(..)`
+ 1. Control them with `body.addImpulse[0,1,0]` and so on
  1. Call `tick(dt)`
 
 and the engine will manage all the physics and collisions.
 
-At the moment it's tightly coupled to my experimental branch of
-voxel-engine#ndarray, and wouldn't work in standard voxeljs.
