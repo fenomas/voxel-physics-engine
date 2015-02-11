@@ -1,23 +1,25 @@
 {
   "name": "voxel-physics-engine",
   "version": "0.1.0",
-  "description": "Simple but physical engine for voxeljs",
-  "TBD": "TBD",
+  "description": "Simple but physical engine for voxel games",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": [
-    "voxeljs",
-    "physics",
-    "engine"
-  ],
-  "author": "",
+  "author": "Andy Hall",
   "license": "MIT",
+  "keywords": [ "voxel", "voxeljs", "physics", "engine" ],
   "dependencies": {
     "aabb-3d": "^0.1.0",
     "collide-3d-tilemap": "^1.0.0",
     "extend": "^2.0.0",
     "gl-vec3": "^1.0.2"
+  },
+  "repository" : {
+    "type" : "git",
+    "url" : "   TBD   "
+  },
+  "bugs" : {
+    "url" : "   TBD   "
   }
 }
