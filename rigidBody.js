@@ -25,7 +25,8 @@ function RigidBody(avatar, _aabb) {
   // internals
   this._forces = vec3.create()
   this._impulses = vec3.create()
-  this._mass = 1
+  this.mass = 1
+  this.gravityMultiplier = 1
 }
 
 RigidBody.prototype.setPosition = function(p) {

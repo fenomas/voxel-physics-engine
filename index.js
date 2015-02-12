@@ -73,6 +73,7 @@ var world_x0 = vec3.create()
 ,  world_dx = vec3.create()
 ,  friction = vec3.create()
 ,  a = vec3.create()
+,  g = vec3.create()
 ,  dv = vec3.create()
 ,  dx = vec3.create()
 
@@ -86,12 +87,13 @@ Physics.prototype.tick = function(dt) {
 
     // semi-implicit Euler integration
 
-    // a = f/m + gravity
-    vec3.scale( a, b._forces, 1/b._mass )
-    vec3.add  ( a, a, this.gravity )
+    // a = f/m + gravity*gravityMultiplier
+    vec3.scale( a, b._forces, 1/b.mass )
+    vec3.scale( g, this.gravity, b.gravityMultiplier )
+    vec3.add  ( a, a, g )
 
     // v1 = v0 + i/m + a*dt
-    vec3.scale( dv, b._impulses, 1/b._mass )
+    vec3.scale( dv, b._impulses, 1/b.mass )
     vec3.add  ( b.velocity, b.velocity, dv )
     vec3.scale( dv, a, dt )
     vec3.add  ( b.velocity, b.velocity, dv )
