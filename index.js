@@ -128,7 +128,6 @@ Physics.prototype.tick = function(dt) {
     this.collideWorld( b.aabb, dx, function hit(axis, tile, coords, dir, edge) {
       if (!tile) return false
       if (Math.abs(dx[axis]) < Math.abs(edge)) {
-        throw new Error('a')
         return
       }
       dx[axis] = edge
