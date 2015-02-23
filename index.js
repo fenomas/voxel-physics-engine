@@ -62,7 +62,7 @@ Physics.prototype.addBody = function(_aabb, mass,
 Physics.prototype.removeBody = function(b) {
   var i = this.bodies.indexOf(b)
   if (i < 0) return undefined
-  var b = this.bodies.splice(i, 1)[0]
+  this.bodies.splice(i, 1)
   b.aabb = b.onCollide = null // in case it helps the GC
 }
 
