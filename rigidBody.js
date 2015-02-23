@@ -8,10 +8,8 @@ module.exports = RigidBody
 
 /*
  *    RIGID BODY - internal data structure
- *
- * Only AABB bodies right now. Someday will likely need spheres?
+ *  Only AABB bodies right now. Someday will likely need spheres?
 */
-
 
 function RigidBody(_aabb, mass, friction, restitution, gravMult, onCollide) {
   this.aabb = new aabb(_aabb.base, _aabb.vec) // clone

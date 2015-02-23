@@ -42,7 +42,6 @@ function Physics(opts, getBlock) {
 }
 
 
-
 /*
  *    ADDING AND REMOVING RIGID BODIES
 */

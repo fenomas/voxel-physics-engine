@@ -18,3 +18,11 @@ though it works quite differently and behaves more physically.
 
 and the engine will manage all the physics and collisions.
 
+#### Example
+
+``` javascript
+var phys = require('voxel-physics-engine')()
+var body = phys.addBody( aabb, mass, friction, restitution, gravityMultiplier, onCollide )
+phys.tick( dt_in_miliseconds )
+phys.removeBody( body )
+```
