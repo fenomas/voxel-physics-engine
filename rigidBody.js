@@ -13,16 +13,17 @@ module.exports = RigidBody
 */
 
 
-function RigidBody(_aabb, mass, friction, restitution, gravMult) {
+function RigidBody(_aabb, mass, friction, restitution, gravMult, onCollide) {
   this.aabb = new aabb(_aabb.base, _aabb.vec) // clone
   this.mass = mass
   // max friction force - i.e. friction coefficient times gravity
   this.friction = friction
   this.restitution = restitution
   this.gravityMultiplier = gravMult
+  this.onCollide = onCollide
+  // internals
   this.velocity = vec3.create()
   this.resting = [ false, false, false ]
-  // internals
   this._forces = vec3.create()
   this._impulses = vec3.create()
 }

@@ -47,13 +47,15 @@ function Physics(opts, getBlock) {
  *    ADDING AND REMOVING RIGID BODIES
 */
 
-Physics.prototype.addBody = function(_aabb, mass, friction, restitution, gravMult) {
+Physics.prototype.addBody = function(_aabb, mass,
+                                      friction, restitution, gravMult,
+                                      onCollide) {
   _aabb = _aabb || new aabb( [0,0,0], [1,1,1] )
   if (typeof mass == 'undefined') mass = 1
   if (typeof friction == 'undefined') friction = 1
   if (typeof restitution == 'undefined') restitution = 0
   if (typeof gravMult == 'undefined') gravMult = 1
-  var b = new RigidBody(_aabb, mass, friction, restitution, gravMult)
+  var b = new RigidBody(_aabb, mass, friction, restitution, gravMult, onCollide)
   this.bodies.push(b)
   return b
 }
@@ -88,7 +90,7 @@ Physics.prototype.tick = function(dt) {
   dt = dt/1000
   for(i=0, len=this.bodies.length; i<len; ++i) {
     b = this.bodies[i]
-    
+
     // semi-implicit Euler integration
 
     // a = f/m + gravity*gravityMultiplier
@@ -128,16 +130,16 @@ Physics.prototype.tick = function(dt) {
     // clear forces and impulses for next timestep
     vec3.set( b._forces, 0, 0, 0 )
     vec3.set( b._impulses, 0, 0, 0 )
-    
+
     // remember resting and velocity values to detect impacts
     wasResting = b.resting.slice()
     vec3.copy( impacts, b.velocity )
-    
+
     // collisions
     b.resting = [0,0,0]
     this.collideWorld( b.aabb, dx, processHit)
     // the collide function updates b.aabb
-    
+
     // detect collision impact based on change in velocity
     vec3.subtract(impacts, b.velocity, impacts)
     for (j=0; j<3; ++j) if (wasResting[j]!==0) { impacts[j] = 0 }
@@ -145,6 +147,9 @@ Physics.prototype.tick = function(dt) {
     if (mag>this.minBounceImpulse && b.restitution) {
       vec3.scale(impacts, impacts, b.restitution)
       b.applyImpulse( impacts )
+      if (b.onCollide) {
+        b.onCollide(impacts)
+      }
     }
   }
 }
