@@ -13,20 +13,18 @@ module.exports = RigidBody
 */
 
 
-function RigidBody(avatar, _aabb) {
-  this.avatar = avatar
+function RigidBody(_aabb, mass, friction, restitution, gravMult) {
   this.aabb = new aabb(_aabb.base, _aabb.vec) // clone
+  this.mass = mass
+  // max friction force - i.e. friction coefficient times gravity
+  this.friction = friction
+  this.restitution = restitution
+  this.gravityMultiplier = gravMult
   this.velocity = vec3.create()
   this.resting = [ false, false, false ]
-  // max friction force - i.e. friction coefficient times gravity
-  this.friction = 1
-  // TODO: make engine use these:
-  this.restitution = .5
   // internals
   this._forces = vec3.create()
   this._impulses = vec3.create()
-  this.mass = 1
-  this.gravityMultiplier = 1
 }
 
 RigidBody.prototype.setPosition = function(p) {
@@ -45,8 +43,6 @@ RigidBody.prototype.applyImpulse = function(i) {
 
 
 // temp
-RigidBody.prototype.subjectTo = function() { /* NOP - TODO: remove? */ }
-RigidBody.prototype.tick =      function() { /* NOP - TODO: remove? */ }
 RigidBody.prototype.atRestX = function() { return this.resting[0] }
 RigidBody.prototype.atRestY = function() { return this.resting[1] }
 RigidBody.prototype.atRestZ = function() { return this.resting[2] }

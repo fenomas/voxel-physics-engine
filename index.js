@@ -11,10 +11,10 @@ module.exports = function(game, opts) {
   return new Physics(game, opts)
 }
 
-var _game
 var defaults = {
-  gravity: [0, -18, 0]
-  , airFriction: 0.995
+  gravity: [0, -10, 0], 
+  airFriction: 0.995,
+  minBounceImpulse: .5, // lowest collision impulse that bounces
 
 }
 
@@ -29,6 +29,7 @@ function Physics(opts, getBlock) {
 
   this.gravity = opts.gravity
   this.airFriction = opts.airFriction
+  this.minBounceImpulse = opts.minBounceImpulse
   this.bodies = []
 
   // collision function - TODO: abstract this into a setter?
@@ -46,10 +47,13 @@ function Physics(opts, getBlock) {
  *    ADDING AND REMOVING RIGID BODIES
 */
 
-Physics.prototype.addBody = function(avatar, _aabb) {
-  // for backwards compatibility, right new default dims to player size
-  _aabb = _aabb || new aabb( [0,22,0], [2/3, 1.5, 2/3] )
-  var b = new RigidBody(avatar, _aabb)
+Physics.prototype.addBody = function(_aabb, mass, friction, restitution, gravMult) {
+  _aabb = _aabb || new aabb( [0,0,0], [1,1,1] )
+  if (typeof mass == 'undefined') mass = 1
+  if (typeof friction == 'undefined') friction = 1
+  if (typeof restitution == 'undefined') restitution = 0
+  if (typeof gravMult == 'undefined') gravMult = 1
+  var b = new RigidBody(_aabb, mass, friction, restitution, gravMult)
   this.bodies.push(b)
   return b
 }
@@ -67,7 +71,7 @@ Physics.prototype.removeBody = function(b) {
  *    PHYSICS AND COLLISIONS
 */
 
-var b, i, len
+var b, i, j, len, wasResting
 var world_x0 = vec3.create()
 ,  world_x1 = vec3.create()
 ,  world_dx = vec3.create()
@@ -76,15 +80,14 @@ var world_x0 = vec3.create()
 ,  g = vec3.create()
 ,  dv = vec3.create()
 ,  dx = vec3.create()
+,  impacts = vec3.create()
 
 Physics.prototype.tick = function(dt) {
   // convert dt to seconds
   dt = dt/1000
   for(i=0, len=this.bodies.length; i<len; ++i) {
     b = this.bodies[i]
-    var onGround = (b.resting[1] < 0)
-    b.resting = [0,0,0]
-
+    
     // semi-implicit Euler integration
 
     // a = f/m + gravity*gravityMultiplier
@@ -98,8 +101,9 @@ Physics.prototype.tick = function(dt) {
     vec3.scale( dv, a, dt )
     vec3.add  ( b.velocity, b.velocity, dv )
 
-    // friction
-    if (onGround) { // friction force <= - u |vel|
+    // apply friction if body was on ground last frame
+    if (b.resting[1]<0) {
+      // friction force <= - u |vel|
       // max friction impulse = (F/m)*dt = (mg)/m*dt = u*g*dt = dt*b.friction
       var fMax = dt * b.friction
       // friction direction - inversed horizontal velocity
@@ -113,7 +117,7 @@ Physics.prototype.tick = function(dt) {
         b.velocity[0] = b.velocity[2] = 0
       }
     } else {
-      // air resistance
+      // not on ground, apply air resistance
       vec3.scale( b.velocity, b.velocity, this.airFriction )
     }
 
@@ -123,25 +127,45 @@ Physics.prototype.tick = function(dt) {
     // clear forces and impulses for next timestep
     vec3.set( b._forces, 0, 0, 0 )
     vec3.set( b._impulses, 0, 0, 0 )
-
+    
+    // remember resting and velocity values to detect impacts
+    wasResting = b.resting.slice()
+    vec3.copy( impacts, b.velocity )
+    
     // collisions
-    this.collideWorld( b.aabb, dx, function hit(axis, tile, coords, dir, edge) {
-      if (!tile) return false
-      if (Math.abs(dx[axis]) < Math.abs(edge)) {
-        return
-      }
-      dx[axis] = edge
-      b.velocity[axis] = 0
-      b.resting[axis] = dir
-      // TODO: emit collision event (on body?) with impulse amount
-      return true
-    })
-
-    // the collide function updates b.aabb, so we're done
+    b.resting = [0,0,0]
+    this.collideWorld( b.aabb, dx, processHit)
+    // the collide function updates b.aabb
+    
+    // detect collision impact based on change in velocity
+    vec3.subtract(impacts, b.velocity, impacts)
+    for (j=0; j<3; ++j) if (wasResting[j]!==0) { impacts[j] = 0 }
+    var mag = vec3.length(impacts)
+    if (mag>this.minBounceImpulse && b.restitution) {
+      vec3.scale(impacts, impacts, b.restitution)
+      b.applyImpulse( impacts )
+    }
   }
-
 }
 
+
+// this function rather confusingly refers to local vars (dx, b)
+// in the context it's called from.. would be great to re-architect this
+function processHit(axis, tile, coords, dir, edge) {
+  // assume all truthy tile values collide
+  if (!tile) return false
+  if (Math.abs(dx[axis]) < Math.abs(edge)) {
+    // this check is true when the body started out collided with terrain
+    // ignore for now. TODO: try to move out of collision?
+    return
+  }
+  // a collision happened, process it
+  dx[axis] = edge
+  b.velocity[axis] = 0
+  b.resting[axis] = dir
+  // TODO: emit collision event (on body?) with impulse amount
+  return true
+}
 
 
 
