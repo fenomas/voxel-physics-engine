@@ -143,12 +143,14 @@ Physics.prototype.tick = function(dt) {
     vec3.subtract(impacts, b.velocity, impacts)
     for (j=0; j<3; ++j) if (wasResting[j]!==0) { impacts[j] = 0 }
     var mag = vec3.length(impacts)
-    if (mag>this.minBounceImpulse && b.restitution) {
-      vec3.scale(impacts, impacts, b.restitution)
-      b.applyImpulse( impacts )
-      if (b.onCollide) {
-        b.onCollide(impacts)
+    if (mag>.001) { // epsilon
+      // bounce if over minBounceImpulse
+      if (mag>this.minBounceImpulse && b.restitution) {
+        vec3.scale(impacts, impacts, b.restitution)
+        b.applyImpulse( impacts )
       }
+      // collision event regardless
+      if (b.onCollide) b.onCollide(impacts)
     }
   }
 }
