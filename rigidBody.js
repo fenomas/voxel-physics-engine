@@ -11,7 +11,7 @@ module.exports = RigidBody
  *  Only AABB bodies right now. Someday will likely need spheres?
 */
 
-function RigidBody(_aabb, mass, friction, restitution, gravMult, onCollide) {
+function RigidBody(_aabb, mass, friction, restitution, gravMult, onCollide, autoStep) {
   this.aabb = new aabb(_aabb.base, _aabb.vec) // clone
   this.mass = mass
   // max friction force - i.e. friction coefficient times gravity
@@ -19,6 +19,7 @@ function RigidBody(_aabb, mass, friction, restitution, gravMult, onCollide) {
   this.restitution = restitution
   this.gravityMultiplier = gravMult
   this.onCollide = onCollide
+  this.autoStep = !!autoStep
   // internals
   this.velocity = vec3.create()
   this.resting = [ false, false, false ]

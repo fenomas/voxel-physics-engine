@@ -73,16 +73,25 @@ Physics.prototype.removeBody = function(b) {
  *    PHYSICS AND COLLISIONS
 */
 
-var b, i, j, len, wasResting
-var world_x0 = vec3.create()
-,  world_x1 = vec3.create()
-,  world_dx = vec3.create()
-,  friction = vec3.create()
-,  a = vec3.create()
-,  g = vec3.create()
-,  dv = vec3.create()
-,  dx = vec3.create()
-,  impacts = vec3.create()
+var b, i, j, len
+var world_x0 = vec3.create(),
+    world_x1 = vec3.create(),
+    world_dx = vec3.create(),
+    friction = vec3.create(),
+    a = vec3.create(),
+    g = vec3.create(),
+    dv = vec3.create(),
+    dx = vec3.create(),
+    impacts = vec3.create(),
+    tmpBox,
+    tmpDx = vec3.create(),
+    tmpResting = vec3.create(),
+    flag = { // boolean holder to get around scope peculiarities below
+      value: false
+    }
+    
+
+
 
 Physics.prototype.tick = function(dt) {
   // convert dt to seconds
@@ -130,18 +139,47 @@ Physics.prototype.tick = function(dt) {
     vec3.set( b._forces, 0, 0, 0 )
     vec3.set( b._impulses, 0, 0, 0 )
 
-    // remember resting and velocity values to detect impacts
-    wasResting = b.resting.slice()
-    vec3.copy( impacts, b.velocity )
+    // cache stepped base/dx values for autostep
+    if (b.autoStep) {
+      tmpBox = new aabb( b.aabb.base, b.aabb.vec )
+      vec3.copy( tmpDx, dx )
+    }
 
-    // collisions
-    b.resting = [0,0,0]
-    this.collideWorld( b.aabb, dx, processHit)
-    // the collide function updates b.aabb
+    // run collisions
+    vec3.set( b.resting, 0, 0, 0 )
+    // flag.value is a check whether the body was collided already before
+    // taking the movement vector into account. It's wrapped in an object
+    // so we can pass it to and reference it from processHit()
+    flag.value = false
+    this.collideWorld(b.aabb, dx, 
+                      processHit.bind(null, dx, b.resting, flag) )
 
-    // detect collision impact based on change in velocity
-    vec3.subtract(impacts, b.velocity, impacts)
-    for (j=0; j<3; ++j) if (wasResting[j]!==0) { impacts[j] = 0 }
+    // if autostep, and on ground, run collisions again with stepped up aabb
+    if (b.autoStep && b.resting[1]<0 && (b.resting[0] || b.resting[2])) {
+      vec3.set( tmpResting, 0, 0, 0 )
+      var y = tmpBox.base[1]
+      if (b.resting[1]<0) tmpDx[1]=0
+      tmpBox.translate( [0, Math.floor(y+1.01)-y, 0] )
+      this.collideWorld(tmpBox, tmpDx, 
+                        processHit.bind(null, tmpDx, tmpResting, flag) )
+      var stepx = b.resting[0] && !tmpResting[0]
+      var stepz = b.resting[2] && !tmpResting[2]
+      // if stepping avoids collisions, copy stepped results into real data
+      if (!flag.value && (stepx || stepz)) {
+        setBoxPos( b.aabb, tmpBox.base )
+        if (b.resting[1]<0) tmpResting[1]=-1
+        vec3.copy( b.resting, tmpResting )
+      }
+    }
+
+    // Collision impacts. b.resting shows which axes had collisions:
+    for (j=0; j<3; ++j) {
+      impacts[j] = 0
+      if (b.resting[j]) {
+        impacts[j] = -b.velocity[j]
+        b.velocity[j] = 0
+      }
+    }
     var mag = vec3.length(impacts)
     if (mag>.001) { // epsilon
       // bounce if over minBounceImpulse
@@ -150,29 +188,28 @@ Physics.prototype.tick = function(dt) {
         b.applyImpulse( impacts )
       }
       // collision event regardless
-      if (b.onCollide) b.onCollide(impacts)
+      if (b.onCollide) b.onCollide(impacts);
     }
   }
 }
 
-
-// this function rather confusingly refers to local vars (dx, b)
-// in the context it's called from.. would be great to re-architect this
-function processHit(axis, tile, coords, dir, edge) {
+// the on-hit function called by the collide-tilemap library
+function processHit(vec, resting, wasCollided, axis, tile, coords, dir, edge) {
   // assume all truthy tile values collide
-  if (!tile) return false
-  if (Math.abs(dx[axis]) < Math.abs(edge)) {
-    // this check is true when the body started out collided with terrain
-    // ignore for now. TODO: try to move out of collision?
+  if (!tile) return
+  if (Math.abs(vec[axis]) < Math.abs(edge)) {
+    // true when the body started out already collided with terrain
+    wasCollided.value = true
     return
   }
   // a collision happened, process it
-  dx[axis] = edge
-  b.velocity[axis] = 0
-  b.resting[axis] = dir
-  // TODO: emit collision event (on body?) with impulse amount
+  resting[axis] = dir
+  vec[axis] = edge
   return true
 }
 
-
-
+// helper function, since aabb has no easy way of setting position
+function setBoxPos(box, pos) {
+  vec3.copy( box.base, pos )
+  vec3.add( box.max, box.base, box.vec )
+}
