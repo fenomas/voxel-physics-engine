@@ -10,6 +10,8 @@ This replaces, and is modeled very loosely on,
 [voxel-physical](https://github.com/chrisdickinson/voxel-physical),
 though it works quite differently and behaves more physically.
 
+The engine can be seen in action in [noa-hello-world](https://github.com/andyhall/noa-hello-world).
+
 ###Usage:
  1. Create engine and supply a `getBlock(x,y,z)`-like function (which should return true when block xyz is solid)
  1. Register rigid bodies with `var body = addBody(..)`
