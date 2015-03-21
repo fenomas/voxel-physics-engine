@@ -20,6 +20,7 @@ function RigidBody(_aabb, mass, friction, restitution, gravMult, onCollide, auto
   this.gravityMultiplier = gravMult
   this.onCollide = onCollide
   this.autoStep = !!autoStep
+  this.onStep = null
   // internals
   this.velocity = vec3.create()
   this.resting = [ false, false, false ]

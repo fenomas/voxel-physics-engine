@@ -169,6 +169,7 @@ Physics.prototype.tick = function(dt) {
         setBoxPos( b.aabb, tmpBox.base )
         if (b.resting[1]<0) tmpResting[1]=-1
         vec3.copy( b.resting, tmpResting )
+        if (b.onStep) b.onStep();
       }
     }
 
