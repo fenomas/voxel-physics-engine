@@ -150,7 +150,7 @@ Physics.prototype.tick = function(dt) {
     // so we can pass it to and reference it from processHit()
     flag.value = false
     this.collideWorld(b.aabb, dx, 
-                      processHit.bind(null, dx, b.resting, flag) )
+                      getCurriedProcessHit(dx, b.resting, flag) )
 
     // if autostep, and on ground, run collisions again with stepped up aabb
     if (b.autoStep && b.resting[1]<0 && (b.resting[0] || b.resting[2])) {
@@ -159,7 +159,7 @@ Physics.prototype.tick = function(dt) {
       if (b.resting[1]<0) tmpDx[1]=0
       tmpBox.translate( [0, Math.floor(y+1.01)-y, 0] )
       this.collideWorld(tmpBox, tmpDx, 
-                        processHit.bind(null, tmpDx, tmpResting, flag) )
+                        getCurriedProcessHit(tmpDx, tmpResting, flag) )
       var stepx = b.resting[0] && !tmpResting[0]
       var stepz = b.resting[2] && !tmpResting[2]
       // if stepping avoids collisions, copy stepped results into real data
@@ -189,6 +189,12 @@ Physics.prototype.tick = function(dt) {
       // collision event regardless
       if (b.onCollide) b.onCollide(impacts);
     }
+  }
+}
+
+function getCurriedProcessHit(vec, resting, wasCollided) {
+  return function(axis, tile, coords, dir, edge) {
+    return processHit(vec, resting, wasCollided, axis, tile, coords, dir, edge)
   }
 }
 
