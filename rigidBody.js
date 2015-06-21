@@ -33,7 +33,7 @@ RigidBody.prototype.setPosition = function(p) {
   this.aabb.translate(p)
 }
 RigidBody.prototype.getPosition = function() {
-  return Array.prototype.slice.call( this.aabb.base ) 
+  return vec3.clone( this.aabb.base ) 
 }
 RigidBody.prototype.applyForce = function(f) {
   vec3.add( this._forces, this._forces, f )
