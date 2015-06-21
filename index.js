@@ -73,7 +73,6 @@ Physics.prototype.removeBody = function(b) {
  *    PHYSICS AND COLLISIONS
 */
 
-var b, i, j, len
 var world_x0 = vec3.create(),
     world_x1 = vec3.create(),
     world_dx = vec3.create(),
@@ -83,7 +82,6 @@ var world_x0 = vec3.create(),
     dv = vec3.create(),
     dx = vec3.create(),
     impacts = vec3.create(),
-    tmpBox,
     tmpDx = vec3.create(),
     tmpResting = vec3.create(),
     flag = { // boolean holder to get around scope peculiarities below
@@ -91,9 +89,9 @@ var world_x0 = vec3.create(),
     }
     
 
-
-
 Physics.prototype.tick = function(dt) {
+  
+  var b, i, j, len, tmpBox
   // convert dt to seconds
   dt = dt/1000
   for(i=0, len=this.bodies.length; i<len; ++i) {
