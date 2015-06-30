@@ -24,6 +24,7 @@ function RigidBody(_aabb, mass, friction, restitution, gravMult, onCollide, auto
   // internals
   this.velocity = vec3.create()
   this.resting = [ false, false, false ]
+  this.inFluid = false
   this._forces = vec3.create()
   this._impulses = vec3.create()
 }

@@ -7,8 +7,8 @@ var collisions = require('collide-3d-tilemap')
 
 var RigidBody = require('./rigidBody')
 
-module.exports = function(game, opts) {
-  return new Physics(game, opts)
+module.exports = function(opts, testSolid, testFluid) {
+  return new Physics(opts, testSolid, testFluid)
 }
 
 var defaults = {
@@ -22,9 +22,10 @@ var defaults = {
 /* 
  *    CONSTRUCTOR - represents a world of rigid bodies.
  * 
- *  Takes in a getBlock(x,y,z) function to query block solidity.
+ *  Takes testSolid(x,y,z) function to query block solidity
+ *  Takes testFluid(x,y,z) function to query if a block is a fluid
 */
-function Physics(opts, getBlock) {
+function Physics(opts, testSolid, testFluid) {
   opts = extend( {}, defaults, opts )
 
   this.gravity = opts.gravity
@@ -34,11 +35,12 @@ function Physics(opts, getBlock) {
 
   // collision function - TODO: abstract this into a setter?
   this.collideWorld = collisions(
-    getBlock,
+    testSolid,
     1,
     [Infinity, Infinity, Infinity],
     [-Infinity, -Infinity, -Infinity]
   )
+  this.testFluid = testFluid
 }
 
 
@@ -153,7 +155,9 @@ Physics.prototype.tick = function(dt) {
                       getCurriedProcessHit(dx, b.resting, flag) )
 
     // if autostep, and on ground, run collisions again with stepped up aabb
-    if (b.autoStep && b.resting[1]<0 && (b.resting[0] || b.resting[2])) {
+    if (b.autoStep && 
+        (b.resting[1]<0 || b.inFluid) && 
+        (b.resting[0] || b.resting[2])) {
       vec3.set( tmpResting, 0, 0, 0 )
       var y = tmpBox.base[1]
       if (b.resting[1]<0) tmpDx[1]=0
@@ -189,6 +193,40 @@ Physics.prototype.tick = function(dt) {
       // collision event regardless
       if (b.onCollide) b.onCollide(impacts);
     }
+    
+    // First pass at handling fluids. Assumes fluids are settled
+    //   thus, only check at center of body, and only from bottom up
+    var box = b.aabb
+    var cx = Math.floor((box.base[0] + box.max[0]) / 2)
+    var cz = Math.floor((box.base[2] + box.max[2]) / 2)
+    var y0 = Math.floor(box.base[1])
+    var y1 = Math.floor(box.max[1])
+    var submerged = 0
+    for (var cy=y0; cy<=y1; ++cy) {
+      if(this.testFluid(cx, cy, cz)) {
+        ++submerged
+      } else {
+        break 
+      }
+    }
+    
+    if (submerged > 0) {
+      // find how much of body is submerged
+      var fluidLevel = y0 + submerged
+      var heightInFluid = fluidLevel - box.base[1]
+      var ratioInFluid = heightInFluid / box.vec[1]
+      if (ratioInFluid > 1) ratioInFluid = 1
+      var vol = box.vec[0] * box.vec[1] * box.vec[2]
+      var displaced = vol * ratioInFluid
+      // bouyant force = -gravity * fluidDensity * volumeDisplaced
+      var fluidDensity = 2.0
+      vec3.scale( g, this.gravity, -b.gravityMultiplier * fluidDensity * displaced )
+      b.applyForce( g )
+      b.inFluid = true
+    } else {
+      b.inFluid = false
+    }
+    
   }
 }
 
