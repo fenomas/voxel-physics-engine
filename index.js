@@ -15,7 +15,8 @@ var defaults = {
   gravity: [0, -10, 0], 
   airFriction: 0.995,
   minBounceImpulse: .5, // lowest collision impulse that bounces
-
+  fluidDensity: 1.2,
+  fluidDrag: 4.0,
 }
 
 
@@ -30,6 +31,8 @@ function Physics(opts, testSolid, testFluid) {
 
   this.gravity = opts.gravity
   this.airFriction = opts.airFriction
+  this.fluidDensity = opts.fluidDensity
+  this.fluidDrag = opts.fluidDrag
   this.minBounceImpulse = opts.minBounceImpulse
   this.bodies = []
 
@@ -219,8 +222,10 @@ Physics.prototype.tick = function(dt) {
       var vol = box.vec[0] * box.vec[1] * box.vec[2]
       var displaced = vol * ratioInFluid
       // bouyant force = -gravity * fluidDensity * volumeDisplaced
-      var fluidDensity = 2.0
-      vec3.scale( g, this.gravity, -b.gravityMultiplier * fluidDensity * displaced )
+      vec3.scale( g, this.gravity, -b.gravityMultiplier * this.fluidDensity * displaced )
+      // drag force = -dv for some constant d. Here scale it down by ratioInFluid
+      vec3.scale( friction, b.velocity, -this.fluidDrag * ratioInFluid )
+      vec3.add( g, g, friction )
       b.applyForce( g )
       b.inFluid = true
     } else {
@@ -229,6 +234,8 @@ Physics.prototype.tick = function(dt) {
     
   }
 }
+
+
 
 function getCurriedProcessHit(vec, resting, wasCollided) {
   return function(axis, tile, coords, dir, edge) {
