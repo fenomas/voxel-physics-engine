@@ -15,9 +15,9 @@
     "engine"
   ],
   "dependencies": {
-    "aabb-3d": "^0.1.0",
-    "collide-3d-tilemap": "^1.0.0",
-    "extend": "^2.0.0",
+    "aabb-3d": "andyhall/aabb-3d",
+    "collide-3d-tilemap": "andyhall/collide-3d-tilemap",
+    "extend": "^3.0.0",
     "gl-vec3": "^1.0.2"
   },
   "repository": {
