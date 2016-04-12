@@ -1,10 +1,10 @@
 
 var aabb = require('aabb-3d')
-,   vec3 = require('gl-vec3')
+var vec3 = require('gl-vec3')
 
 
 module.exports = RigidBody
-  
+
 
 /*
  *    RIGID BODY - internal data structure
@@ -23,24 +23,24 @@ function RigidBody(_aabb, mass, friction, restitution, gravMult, onCollide, auto
   this.onStep = null
   // internals
   this.velocity = vec3.create()
-  this.resting = [ false, false, false ]
+  this.resting = [false, false, false]
   this.inFluid = false
   this._forces = vec3.create()
   this._impulses = vec3.create()
 }
 
 RigidBody.prototype.setPosition = function(p) {
-  vec3.subtract(p,p,this.aabb.base)
+  vec3.subtract(p, p, this.aabb.base)
   this.aabb.translate(p)
 }
 RigidBody.prototype.getPosition = function() {
-  return vec3.clone( this.aabb.base ) 
+  return vec3.clone(this.aabb.base)
 }
 RigidBody.prototype.applyForce = function(f) {
-  vec3.add( this._forces, this._forces, f )
+  vec3.add(this._forces, this._forces, f)
 }
 RigidBody.prototype.applyImpulse = function(i) {
-  vec3.add( this._impulses, this._impulses, i )
+  vec3.add(this._impulses, this._impulses, i)
 }
 
 

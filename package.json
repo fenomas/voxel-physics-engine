@@ -16,9 +16,8 @@
   ],
   "dependencies": {
     "aabb-3d": "andyhall/aabb-3d",
-    "collide-3d-tilemap": "andyhall/collide-3d-tilemap",
     "extend": "^3.0.0",
-    "gl-vec3": "^1.0.2"
+    "gl-vec3": "^1.0.3"
   },
   "repository": {
     "type": "git",
