@@ -17,7 +17,8 @@
   "dependencies": {
     "aabb-3d": "andyhall/aabb-3d",
     "extend": "^3.0.0",
-    "gl-vec3": "^1.0.3"
+    "gl-vec3": "^1.0.3",
+    "voxel-aabb-sweep": "^0.5.0"
   },
   "repository": {
     "type": "git",

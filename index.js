@@ -1,13 +1,13 @@
 'use strict';
 
-var collisions = require('./voxelCollider')
 var extend = require('extend')
 var aabb = require('aabb-3d')
 var vec3 = require('gl-vec3')
-
+var sweep = require('voxel-aabb-sweep')
 var RigidBody = require('./rigidBody')
 
-module.exports = function(opts, testSolid, testFluid) {
+
+module.exports = function (opts, testSolid, testFluid) {
   return new Physics(opts, testSolid, testFluid)
 }
 
@@ -37,7 +37,7 @@ function Physics(opts, testSolid, testFluid) {
   this.bodies = []
 
   // collision function - TODO: abstract this into a setter?
-  this.collideWorld = collisions(testSolid)
+  this.testSolid = testSolid
   this.testFluid = testFluid
 }
 
@@ -46,7 +46,7 @@ function Physics(opts, testSolid, testFluid) {
  *    ADDING AND REMOVING RIGID BODIES
 */
 
-Physics.prototype.addBody = function(_aabb, mass,
+Physics.prototype.addBody = function (_aabb, mass,
   friction, restitution, gravMult,
   onCollide) {
   _aabb = _aabb || new aabb([0, 0, 0], [1, 1, 1])
@@ -59,7 +59,7 @@ Physics.prototype.addBody = function(_aabb, mass,
   return b
 }
 
-Physics.prototype.removeBody = function(b) {
+Physics.prototype.removeBody = function (b) {
   var i = this.bodies.indexOf(b)
   if (i < 0) return undefined
   this.bodies.splice(i, 1)
@@ -73,24 +73,17 @@ Physics.prototype.removeBody = function(b) {
  *    PHYSICS AND COLLISIONS
 */
 
-var world_x0 = vec3.create()
-var world_x1 = vec3.create()
-var world_dx = vec3.create()
 var friction = vec3.create()
 var a = vec3.create()
 var g = vec3.create()
 var dv = vec3.create()
 var dx = vec3.create()
 var impacts = vec3.create()
-var origDx = vec3.create()
-var tmpResting = vec3.create()
-// Object wrapper for a flag that can be set in the collision callback
-var wasCollided = { value: false }
 
 
-Physics.prototype.tick = function(dt) {
+Physics.prototype.tick = function (dt) {
 
-  var b, i, j, len, origBox
+  var b, i, j, len
   // convert dt to seconds
   dt = dt / 1000
   for (i = 0, len = this.bodies.length; i < len; ++i) {
@@ -136,47 +129,17 @@ Physics.prototype.tick = function(dt) {
     vec3.set(b._forces, 0, 0, 0)
     vec3.set(b._impulses, 0, 0, 0)
 
-    // cache stepped base/dx values for autostep
+    // cache old position for use in autostepping
     if (b.autoStep) {
-      origBox = new aabb(b.aabb.base, b.aabb.vec)
-      vec3.copy(origDx, dx)
+      cloneAABB(tmpBox, b.aabb)
     }
 
-    // run collisions
-    vec3.set(b.resting, 0, 0, 0)
-    processCollisions(this, b.aabb, dx, b.resting, wasCollided)
+    // sweeps aabb along dx and accounts for collisions
+    processCollisions(this, b.aabb, dx, b.resting)
 
     // if autostep, and on ground, run collisions again with stepped up aabb
-    if (b.autoStep &&
-      (b.resting[1] < 0 || b.inFluid) &&
-      (b.resting[0] || b.resting[2])) {
-
-      // direction movement is blocked before trying a step
-      var xBlocked0 = !!b.resting[0]
-      var zBlocked0 = !!b.resting[2]
-
-      // from pos/vel before resolving collisions, move up one block and retry
-      var y = origBox.base[1]
-      origBox.translate([0, Math.floor(y + 1.001) - y, 0])
-      if (b.resting[1] < 0) origDx[1] = 0
-      vec3.set(tmpResting, 0, 0, 0)
-      processCollisions(this, origBox, origDx, tmpResting, wasCollided)
-
-      // direction movement is blocked before trying a step
-      var xBlocked1 = !!tmpResting[0]
-      var zBlocked1 = !!tmpResting[2]
-
-      // magical bit here to avoid edge cases going through doors, etc
-      var stepx = (xBlocked0 && !xBlocked1) && !(!zBlocked0 && zBlocked1)
-      var stepz = (zBlocked0 && !zBlocked1) && !(!xBlocked0 && xBlocked1)
-
-      // if stepping avoids collisions, copy stepped results into real data
-      if (!wasCollided.value && (stepx || stepz)) {
-        b.aabb.setPosition(origBox.base)
-        b.resting[0] = tmpResting[0]
-        b.resting[2] = tmpResting[2]
-        if (b.onStep) b.onStep()
-      }
+    if (b.autoStep) {
+      tryAutoStepping(this, b, tmpBox, dx)
     }
 
     // Collision impacts. b.resting shows which axes had collisions:
@@ -237,21 +200,80 @@ Physics.prototype.tick = function(dt) {
 }
 
 
-function processCollisions(self, box, velocity, resting, wasCollided) {
-  wasCollided.value = false
-  self.collideWorld(box, velocity, processHit)
-
-  function processHit(axis, solidity, coords, dir, distToEdge) {
-    if (Math.abs(velocity[axis]) < Math.abs(distToEdge)) {
-      // true when the body started out already collided with terrain
-      wasCollided.value = true
-      return
-    }
-    // a collision happened, process it
+// main collision processor - sweep aabb along velocity vector and set resting vector
+function processCollisions(self, box, velocity, resting) {
+  vec3.set(resting, 0, 0, 0)
+  return sweep(self.testSolid, box, velocity, function (dist, axis, dir, vec) {
     resting[axis] = dir
-    velocity[axis] = distToEdge
-    return true
-
-  }
+    vec[axis] = 0
+  })
 }
 
+
+var tmpBox = new aabb([], [])
+var tmpResting = vec3.create()
+var targetPos = vec3.create()
+var upvec = vec3.create()
+var leftover = vec3.create()
+
+function tryAutoStepping(self, b, oldBox, dx) {
+  if (b.resting[1] >= 0 && !b.inFluid) return
+
+  // // direction movement was blocked before trying a step
+  var xBlocked = (b.resting[0] !== 0)
+  var zBlocked = (b.resting[2] !== 0)
+  if (!(xBlocked || zBlocked)) return
+
+  // continue autostepping only if headed sufficiently into obstruction
+  var ratio = Math.abs(dx[0] / dx[2])
+  var cutoff = 4
+  if (!xBlocked && ratio > cutoff) return
+  if (!zBlocked && ratio < 1 / cutoff) return
+
+  // original target position before being obstructed
+  vec3.add(targetPos, oldBox.base, dx)
+
+  // move towards the target until the first X/Z collision
+  var getVoxels = self.testSolid
+  var d1 = sweep(getVoxels, oldBox, dx, function (dist, axis, dir, vec) {
+    if (axis === 1) vec[axis] = 0
+    else return true
+  })
+
+  var y = b.aabb.base[1]
+  var ydist = Math.floor(y + 1.001) - y
+  vec3.set(upvec, 0, ydist, 0)
+  var collided = false
+  // sweep up, bailing on any obstruction
+  var d2 = sweep(getVoxels, oldBox, upvec, function (dist, axis, dir, vec) {
+    collided = true
+    return true
+  })
+  if (collided) return // could't move upwards
+
+  // now move in X/Z however far was left over before hitting the obstruction
+  vec3.subtract(leftover, targetPos, oldBox.base)
+  leftover[1] = 0
+  var d3 = processCollisions(self, oldBox, leftover, tmpResting)
+
+  // bail if no movement happened in the originally blocked direction
+  if (xBlocked && !equals(oldBox.base[0], targetPos[0])) return
+  if (zBlocked && !equals(oldBox.base[2], targetPos[2])) return
+
+  // done - oldBox is now at the target autostepped position
+  cloneAABB(b.aabb, oldBox)
+  b.resting[0] = tmpResting[0]
+  b.resting[2] = tmpResting[2]
+  if (b.onStep) b.onStep()
+}
+
+
+function equals(a, b) { return Math.abs(a - b) < 1e-5 }
+
+function cloneAABB(tgt, src) {
+  for (var i = 0; i < 3; i++) {
+    tgt.base[i] = src.base[i]
+    tgt.max[i] = src.max[i]
+    tgt.vec[i] = src.vec[i]
+  }
+}
