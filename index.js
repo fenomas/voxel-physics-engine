@@ -79,6 +79,7 @@ var g = vec3.create()
 var dv = vec3.create()
 var dx = vec3.create()
 var impacts = vec3.create()
+var oldResting = vec3.create()
 
 
 Physics.prototype.tick = function (dt) {
@@ -88,6 +89,7 @@ Physics.prototype.tick = function (dt) {
   dt = dt / 1000
   for (i = 0, len = this.bodies.length; i < len; ++i) {
     b = this.bodies[i]
+    vec3.copy(oldResting, b.resting)
 
     // semi-implicit Euler integration
 
@@ -103,7 +105,7 @@ Physics.prototype.tick = function (dt) {
     vec3.add(b.velocity, b.velocity, dv)
 
     // apply friction if body was on ground last frame
-    if (b.resting[1] < 0) {
+    if (oldResting[1] < 0) {
       // friction force <= - u |vel|
       // max friction impulse = (F/m)*dt = (mg)/m*dt = u*g*dt = dt*b.friction
       var fMax = dt * b.friction
@@ -146,7 +148,8 @@ Physics.prototype.tick = function (dt) {
     for (j = 0; j < 3; ++j) {
       impacts[j] = 0
       if (b.resting[j]) {
-        impacts[j] = -b.velocity[j]
+        // count impact only if wasn't collided last frame
+        if (!oldResting[j]) impacts[j] = -b.velocity[j]
         b.velocity[j] = 0
       }
     }
@@ -157,8 +160,8 @@ Physics.prototype.tick = function (dt) {
         vec3.scale(impacts, impacts, b.restitution)
         b.applyImpulse(impacts)
       }
-      // collision event regardless
-      if (b.onCollide) b.onCollide(impacts);
+      // send collision event regardless
+      if (b.onCollide) b.onCollide(impacts)
     }
 
     // First pass at handling fluids. Assumes fluids are settled
