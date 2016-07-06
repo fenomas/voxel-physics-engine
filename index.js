@@ -157,7 +157,7 @@ Physics.prototype.tick = function (dt) {
     if (mag > .001) { // epsilon
       // bounce if over minBounceImpulse
       if (mag > this.minBounceImpulse && b.restitution) {
-        vec3.scale(impacts, impacts, b.restitution)
+        vec3.scale(impacts, impacts, b.restitution * b.mass)
         b.applyImpulse(impacts)
       }
       // send collision event regardless
