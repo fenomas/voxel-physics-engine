@@ -15,7 +15,7 @@
     "engine"
   ],
   "dependencies": {
-    "aabb-3d": "andyhall/aabb-3d",
+    "aabb-3d": "github:andyhall/aabb-3d",
     "extend": "^3.0.0",
     "gl-vec3": "^1.0.3",
     "voxel-aabb-sweep": "^0.5.0"
