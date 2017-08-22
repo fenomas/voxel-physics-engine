@@ -6,11 +6,11 @@ It was made to work with voxel.js, but it only takes references to
 an abstracted `getBlock(x,y,z)` function and plain vectors, 
 so it can be used with other engines. 
 
-This replaces, and is modeled very loosely on, 
-[voxel-physical](https://github.com/chrisdickinson/voxel-physical),
+This replaces [voxel-physical](https://github.com/chrisdickinson/voxel-physical),
 though it works quite differently and behaves more physically.
 
-The engine can be seen in action in [noa-hello-world](https://github.com/andyhall/noa-hello-world).
+The engine can be seen in action in [noa](https://github.com/andyhall/noa) or projects using it
+(such as [this talk on voxels](http://andyhall.github.io/noa-lt/).
 
 ###Usage:
  1. Create engine and supply a `getBlock(x,y,z)`-like function (which should return true when block xyz is solid)
@@ -35,7 +35,7 @@ phys.removeBody( body )
 #### Features
 
  * Reasonably physical, supports standard properties (friction, restitution, etc.)
- * Query the body's `resting[axis]` property (-1,0,1 on each axis) to tell if it's currently resting against an obstacle.
+ * Query the body's `resting[axis]` property (-1,0,1 on each axis) to tell if it's currently touching a solid voxel.
    E.g. `body.resting[1]` is `1` when the body is colliding with the ceiling.
  * Collisions with terrain trigger each body's `onCollide(impacts)` callback. 
    The argument is a `vec3` of the change in velocity on each axis, so multiply by mass if you want the impulse.
