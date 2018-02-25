@@ -89,6 +89,8 @@ Physics.prototype.tick = function (dt) {
   dt = dt / 1000
   for (i = 0, len = this.bodies.length; i < len; ++i) {
     b = this.bodies[i]
+    if (b._sleepFrameCount < 0) continue
+    b._sleepFrameCount--
     vec3.copy(oldResting, b.resting)
 
     // semi-implicit Euler integration
@@ -199,6 +201,9 @@ Physics.prototype.tick = function (dt) {
       b.inFluid = false
     }
 
+    // sleep check
+    var vsq = vec3.squaredLength(b.velocity)
+    if (vsq > 1e-5) b._markActive()
   }
 }
 

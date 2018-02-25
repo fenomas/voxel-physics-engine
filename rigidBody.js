@@ -27,25 +27,33 @@ function RigidBody(_aabb, mass, friction, restitution, gravMult, onCollide, auto
   this.inFluid = false
   this._forces = vec3.create()
   this._impulses = vec3.create()
+  this._sleepFrameCount = 10 | 0
 }
 
-RigidBody.prototype.setPosition = function(p) {
+RigidBody.prototype.setPosition = function (p) {
   vec3.subtract(p, p, this.aabb.base)
   this.aabb.translate(p)
+  this._markActive()
 }
-RigidBody.prototype.getPosition = function() {
+RigidBody.prototype.getPosition = function () {
   return vec3.clone(this.aabb.base)
 }
-RigidBody.prototype.applyForce = function(f) {
+RigidBody.prototype.applyForce = function (f) {
   vec3.add(this._forces, this._forces, f)
+  this._markActive()
 }
-RigidBody.prototype.applyImpulse = function(i) {
+RigidBody.prototype.applyImpulse = function (i) {
   vec3.add(this._impulses, this._impulses, i)
+  this._markActive()
 }
+RigidBody.prototype._markActive = function () {
+  this._sleepFrameCount = 10 | 0
+}
+
 
 
 // temp
-RigidBody.prototype.atRestX = function() { return this.resting[0] }
-RigidBody.prototype.atRestY = function() { return this.resting[1] }
-RigidBody.prototype.atRestZ = function() { return this.resting[2] }
+RigidBody.prototype.atRestX = function () { return this.resting[0] }
+RigidBody.prototype.atRestY = function () { return this.resting[1] }
+RigidBody.prototype.atRestZ = function () { return this.resting[2] }
 
