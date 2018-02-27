@@ -83,15 +83,18 @@ var oldResting = vec3.create()
 
 
 Physics.prototype.tick = function (dt) {
+  var noGravity = equals(0, vec3.squaredLength(this.gravity))
 
   var b, i, j, len
   // convert dt to seconds
   dt = dt / 1000
   for (i = 0, len = this.bodies.length; i < len; ++i) {
     b = this.bodies[i]
-    if (b._sleepFrameCount < 0) continue
-    b._sleepFrameCount--
     vec3.copy(oldResting, b.resting)
+
+    // skip bodies with no velocity/forces/impulses
+    if (bodyAsleep(this, b, dt, noGravity)) continue
+    b._sleepFrameCount--
 
     // semi-implicit Euler integration
 
@@ -274,6 +277,25 @@ function tryAutoStepping(self, b, oldBox, dx) {
   b.resting[2] = tmpResting[2]
   if (b.onStep) b.onStep()
 }
+
+
+// check if body is, and can stay, asleep
+function bodyAsleep(self, body, dt, noGravity) {
+  if (body._sleepFrameCount > 0) return false
+  // without gravity bodies stay asleep until a force/impulse wakes them up
+  if (noGravity) return true
+  // otherwise check body is resting against something
+  // i.e. sweep along by dv=g*dt and check there's still a collision
+  var isResting = false
+  vec3.scale(dv, self.gravity, dt)
+  sweep(self.testSolid, body.aabb, dv, function () {
+    isResting = true
+    return true
+  })
+  return isResting
+}
+
+
 
 
 function equals(a, b) { return Math.abs(a - b) < 1e-5 }
