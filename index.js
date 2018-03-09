@@ -93,15 +93,15 @@ Physics.prototype.tick = function (dt) {
     vec3.copy(oldResting, b.resting)
 
     // skip bodies with no velocity/forces/impulses
-    if (bodyAsleep(this, b, dt, noGravity)) continue
+    var localNoGrav = noGravity || (b.gravityMultiplier === 0)
+    if (bodyAsleep(this, b, dt, localNoGrav)) continue
     b._sleepFrameCount--
 
     // semi-implicit Euler integration
 
     // a = f/m + gravity*gravityMultiplier
     vec3.scale(a, b._forces, 1 / b.mass)
-    vec3.scale(g, this.gravity, b.gravityMultiplier)
-    vec3.add(a, a, g)
+    vec3.scaleAndAdd(a, a, this.gravity, b.gravityMultiplier)
 
     // v1 = v0 + i/m + a*dt
     vec3.scale(dv, b._impulses, 1 / b.mass)
@@ -291,7 +291,7 @@ function bodyAsleep(self, body, dt, noGravity) {
   sweep(self.testSolid, body.aabb, dv, function () {
     isResting = true
     return true
-  })
+  }, true)
   return isResting
 }
 
