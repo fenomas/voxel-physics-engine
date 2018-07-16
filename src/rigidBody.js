@@ -15,16 +15,16 @@ module.exports = RigidBody
 function RigidBody(_aabb, mass, friction, restitution, gravMult, onCollide, autoStep) {
     this.aabb = new aabb(_aabb.base, _aabb.vec) // clone
     this.mass = mass
-    // max friction force - i.e. friction coefficient times gravity
     this.friction = friction
     this.restitution = restitution
     this.gravityMultiplier = gravMult
     this.onCollide = onCollide
     this.autoStep = !!autoStep
+    this.airFriction = 0 // overrides global airFriction if nonzero
     this.onStep = null
     // internals
     this.velocity = vec3.create()
-    this.resting = [false, false, false]
+    this.resting = [0, 0, 0]
     this.inFluid = false
     this._forces = vec3.create()
     this._impulses = vec3.create()

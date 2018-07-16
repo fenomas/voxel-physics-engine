@@ -2,7 +2,8 @@
 An abstracted physics engine for voxel game engines.
 
 This implements reasonably realistic physics for voxel games.
-It was made to work with voxel.js, but it only takes references to 
+It was made to work with [noa](https://github.com/andyhall/noa) 
+or `voxel.js`, but it just takes references to 
 an abstracted `getBlock(x,y,z)` function and plain vectors, 
 so it can be used with other engines. 
 
@@ -25,7 +26,7 @@ and the engine will manage all the physics and collisions.
 ``` javascript
 var makePhysics = require('voxel-physics-engine')
 var opts = { gravity: [0,-10,0] }
-var getter = queryBlock // function(x,y,z) 
+var getter = function(x,y,z) { /* your logic here */ }
 var phys = makePhysics( opts, getter )
 var body = phys.addBody( aabb, mass, friction, restitution, gravityMult, onCollide, autoStep )
 phys.tick( dt_in_miliseconds )
@@ -42,4 +43,11 @@ phys.removeBody( body )
    (A body resting on the ground will produce a small impact each tick due to gravity.)
  * If you set a body's `autoStep` property, the engine will cause it to 
    automatically "step" up hills (i.e. 1-block obstructions).
-   
+  
+#### Changes in latest version:
+
+ * `0.8.0`
+   * Friction now uses regular coefficients, and works in all directions, not just downwards
+   * Bodies have an `.airFriction` that overrides the global value (if nonzero)
+   * Air and regular friction should now scale correctly with frame rate
+

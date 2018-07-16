@@ -1,8 +1,8 @@
 {
   "name": "voxel-physics-engine",
-  "version": "0.7.7",
+  "version": "0.8.0",
   "description": "Simple but physical engine for voxel games",
-  "main": "index.js",
+  "main": "src/index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -16,7 +16,6 @@
   ],
   "dependencies": {
     "aabb-3d": "github:andyhall/aabb-3d",
-    "extend": "^3.0.0",
     "gl-vec3": "^1.0.3",
     "voxel-aabb-sweep": "^0.5.0"
   },

@@ -1,6 +1,5 @@
-'use strict';
+'use strict'
 
-var extend = require('extend')
 var aabb = require('aabb-3d')
 var vec3 = require('gl-vec3')
 var sweep = require('voxel-aabb-sweep')
@@ -13,10 +12,10 @@ module.exports = function (opts, testSolid, testFluid) {
 
 var defaults = {
     gravity: [0, -10, 0],
-    airFriction: 0.995,
+    airFriction: 0.9,
     minBounceImpulse: .5, // lowest collision impulse that bounces
     fluidDensity: 1.2,
-    fluidDrag: 4.0,
+    fluidDrag: 2.0,
 }
 
 
@@ -27,7 +26,7 @@ var defaults = {
  *  Takes testFluid(x,y,z) function to query if a block is a fluid
 */
 function Physics(opts, testSolid, testFluid) {
-    opts = extend({}, defaults, opts)
+    opts = Object.assign({}, defaults, opts)
 
     this.gravity = opts.gravity
     this.airFriction = opts.airFriction
@@ -46,9 +45,8 @@ function Physics(opts, testSolid, testFluid) {
  *    ADDING AND REMOVING RIGID BODIES
 */
 
-Physics.prototype.addBody = function (_aabb, mass,
-    friction, restitution, gravMult,
-    onCollide) {
+Physics.prototype.addBody = function (_aabb, mass, friction,
+    restitution, gravMult, onCollide) {
     _aabb = _aabb || new aabb([0, 0, 0], [1, 1, 1])
     if (typeof mass == 'undefined') mass = 1
     if (typeof friction == 'undefined') friction = 1
@@ -63,7 +61,7 @@ Physics.prototype.removeBody = function (b) {
     var i = this.bodies.indexOf(b)
     if (i < 0) return undefined
     this.bodies.splice(i, 1)
-    b.aabb = b.onCollide = null // in case it helps the GC
+    b.aabb = b.onCollide = null
 }
 
 
@@ -82,136 +80,187 @@ var impacts = vec3.create()
 var oldResting = vec3.create()
 
 
+/*
+ *    TICK HANDLER
+*/
 Physics.prototype.tick = function (dt) {
-    var noGravity = equals(0, vec3.squaredLength(this.gravity))
-
-    var b, i, j, len
     // convert dt to seconds
     dt = dt / 1000
-    for (i = 0, len = this.bodies.length; i < len; ++i) {
-        b = this.bodies[i]
-        vec3.copy(oldResting, b.resting)
+    var noGravity = equals(0, vec3.squaredLength(this.gravity))
 
-        // skip bodies with no velocity/forces/impulses
-        var localNoGrav = noGravity || (b.gravityMultiplier === 0)
-        if (bodyAsleep(this, b, dt, localNoGrav)) continue
-        b._sleepFrameCount--
-
-        // semi-implicit Euler integration
-
-        // a = f/m + gravity*gravityMultiplier
-        vec3.scale(a, b._forces, 1 / b.mass)
-        vec3.scaleAndAdd(a, a, this.gravity, b.gravityMultiplier)
-
-        // v1 = v0 + i/m + a*dt
-        vec3.scale(dv, b._impulses, 1 / b.mass)
-        vec3.add(b.velocity, b.velocity, dv)
-        vec3.scale(dv, a, dt)
-        vec3.add(b.velocity, b.velocity, dv)
-
-        // apply friction if body was on ground last frame
-        if (oldResting[1] < 0) {
-            // friction force <= - u |vel|
-            // max friction impulse = (F/m)*dt = (mg)/m*dt = u*g*dt = dt*b.friction
-            var fMax = dt * b.friction
-            // friction direction - inversed horizontal velocity
-            vec3.scale(friction, b.velocity, -1)
-            friction[1] = 0
-            var vAmt = vec3.length(friction)
-            if (vAmt > fMax) { // slow down
-                vec3.scale(friction, friction, fMax / vAmt)
-                vec3.add(b.velocity, b.velocity, friction)
-            } else { // stop
-                b.velocity[0] = b.velocity[2] = 0
-            }
-        } else {
-            // not on ground, apply air resistance
-            vec3.scale(b.velocity, b.velocity, this.airFriction)
-        }
-
-        // x1-x0 = v1*dt
-        vec3.scale(dx, b.velocity, dt)
-
-        // clear forces and impulses for next timestep
-        vec3.set(b._forces, 0, 0, 0)
-        vec3.set(b._impulses, 0, 0, 0)
-
-        // cache old position for use in autostepping
-        if (b.autoStep) {
-            cloneAABB(tmpBox, b.aabb)
-        }
-
-        // sweeps aabb along dx and accounts for collisions
-        processCollisions(this, b.aabb, dx, b.resting)
-
-        // if autostep, and on ground, run collisions again with stepped up aabb
-        if (b.autoStep) {
-            tryAutoStepping(this, b, tmpBox, dx)
-        }
-
-        // Collision impacts. b.resting shows which axes had collisions:
-        for (j = 0; j < 3; ++j) {
-            impacts[j] = 0
-            if (b.resting[j]) {
-                // count impact only if wasn't collided last frame
-                if (!oldResting[j]) impacts[j] = -b.velocity[j]
-                b.velocity[j] = 0
-            }
-        }
-        var mag = vec3.length(impacts)
-        if (mag > .001) { // epsilon
-            // bounce if over minBounceImpulse
-            if (mag > this.minBounceImpulse && b.restitution) {
-                vec3.scale(impacts, impacts, b.restitution * b.mass)
-                b.applyImpulse(impacts)
-            }
-            // send collision event regardless
-            if (b.onCollide) b.onCollide(impacts)
-        }
-
-        // First pass at handling fluids. Assumes fluids are settled
-        //   thus, only check at center of body, and only from bottom up
-        var box = b.aabb
-        var cx = Math.floor((box.base[0] + box.max[0]) / 2)
-        var cz = Math.floor((box.base[2] + box.max[2]) / 2)
-        var y0 = Math.floor(box.base[1])
-        var y1 = Math.floor(box.max[1])
-        var submerged = 0
-        for (var cy = y0; cy <= y1; ++cy) {
-            if (this.testFluid(cx, cy, cz)) {
-                ++submerged
-            } else {
-                break
-            }
-        }
-
-        if (submerged > 0) {
-            // find how much of body is submerged
-            var fluidLevel = y0 + submerged
-            var heightInFluid = fluidLevel - box.base[1]
-            var ratioInFluid = heightInFluid / box.vec[1]
-            if (ratioInFluid > 1) ratioInFluid = 1
-            var vol = box.vec[0] * box.vec[1] * box.vec[2]
-            var displaced = vol * ratioInFluid
-            // bouyant force = -gravity * fluidDensity * volumeDisplaced
-            vec3.scale(g, this.gravity, -b.gravityMultiplier * this.fluidDensity * displaced)
-            // drag force = -dv for some constant d. Here scale it down by ratioInFluid
-            vec3.scale(friction, b.velocity, -this.fluidDrag * ratioInFluid)
-            vec3.add(g, g, friction)
-            b.applyForce(g)
-            b.inFluid = true
-        } else {
-            b.inFluid = false
-        }
-
-        // sleep check
-        var vsq = vec3.squaredLength(b.velocity)
-        if (vsq > 1e-5) b._markActive()
-    }
+    this.bodies.forEach(b => iterateBody(this, b, dt, noGravity))
 }
 
 
-// main collision processor - sweep aabb along velocity vector and set resting vector
+
+/*
+ *    PER-BODY MAIN PHYSICS ROUTINE
+*/
+
+function iterateBody(self, b, dt, noGravity) {
+    vec3.copy(oldResting, b.resting)
+
+    // skip bodies with no velocity/forces/impulses
+    var localNoGrav = noGravity || (b.gravityMultiplier === 0)
+    if (bodyAsleep(self, b, dt, localNoGrav)) return
+    b._sleepFrameCount--
+
+    // semi-implicit Euler integration
+
+    // a = f/m + gravity*gravityMultiplier
+    vec3.scale(a, b._forces, 1 / b.mass)
+    vec3.scaleAndAdd(a, a, self.gravity, b.gravityMultiplier)
+
+    // dv = i/m + a*dt
+    // v1 = v0 + dv
+    vec3.scale(dv, b._impulses, 1 / b.mass)
+    vec3.scaleAndAdd(dv, dv, a, dt)
+    vec3.add(b.velocity, b.velocity, dv)
+
+    // apply friction based on change in velocity this frame
+    if (b.friction) {
+        applyFrictionByAxis(0, b, dv)
+        applyFrictionByAxis(1, b, dv)
+        applyFrictionByAxis(2, b, dv)
+    }
+
+    // linear air friction - effectively v *= drag
+    // body airFriction overrides global airFriction
+    var drag = b.airFriction || self.airFriction
+    var dmult = 1 - (1 - drag) * dt / b.mass
+    vec3.scale(b.velocity, b.velocity, dmult)
+
+    // x1-x0 = v1*dt
+    vec3.scale(dx, b.velocity, dt)
+
+    // clear forces and impulses for next timestep
+    vec3.set(b._forces, 0, 0, 0)
+    vec3.set(b._impulses, 0, 0, 0)
+
+    // cache old position for use in autostepping
+    if (b.autoStep) {
+        cloneAABB(tmpBox, b.aabb)
+    }
+
+    // sweeps aabb along dx and accounts for collisions
+    processCollisions(self, b.aabb, dx, b.resting)
+
+    // if autostep, and on ground, run collisions again with stepped up aabb
+    if (b.autoStep) {
+        tryAutoStepping(self, b, tmpBox, dx)
+    }
+
+    // Collision impacts. b.resting shows which axes had collisions:
+    for (var i = 0; i < 3; ++i) {
+        impacts[i] = 0
+        if (b.resting[i]) {
+            // count impact only if wasn't collided last frame
+            if (!oldResting[i]) impacts[i] = -b.velocity[i]
+            b.velocity[i] = 0
+        }
+    }
+    var mag = vec3.length(impacts)
+    if (mag > .001) { // epsilon
+        // bounce if over minBounceImpulse
+        if (mag > self.minBounceImpulse && b.restitution) {
+            vec3.scale(impacts, impacts, b.restitution * b.mass)
+            b.applyImpulse(impacts)
+        }
+        // send collision event regardless
+        if (b.onCollide) b.onCollide(impacts)
+    }
+
+    // First pass at handling fluids. Assumes fluids are settled
+    //   thus, only check at center of body, and only from bottom up
+    var box = b.aabb
+    var cx = Math.floor((box.base[0] + box.max[0]) / 2)
+    var cz = Math.floor((box.base[2] + box.max[2]) / 2)
+    var y0 = Math.floor(box.base[1])
+    var y1 = Math.floor(box.max[1])
+    var submerged = 0
+    for (var cy = y0; cy <= y1; ++cy) {
+        if (self.testFluid(cx, cy, cz)) {
+            ++submerged
+        } else {
+            break
+        }
+    }
+
+    if (submerged > 0) {
+        // find how much of body is submerged
+        var fluidLevel = y0 + submerged
+        var heightInFluid = fluidLevel - box.base[1]
+        var ratioInFluid = heightInFluid / box.vec[1]
+        if (ratioInFluid > 1) ratioInFluid = 1
+        var vol = box.vec[0] * box.vec[1] * box.vec[2]
+        var displaced = vol * ratioInFluid
+        // bouyant force = -gravity * fluidDensity * volumeDisplaced
+        vec3.scale(g, self.gravity, -self.fluidDensity * displaced)
+        // drag force = -dv for some constant d. Here scale it down by ratioInFluid
+        vec3.scale(friction, b.velocity, -self.fluidDrag * ratioInFluid)
+        vec3.add(g, g, friction)
+        b.applyForce(g)
+        b.inFluid = true
+    } else {
+        b.inFluid = false
+    }
+
+    // sleep check
+    var vsq = vec3.squaredLength(b.velocity)
+    if (vsq > 1e-5) b._markActive()
+}
+
+
+
+
+
+
+/*
+ *    FRICTION
+*/
+
+
+function applyFrictionByAxis(axis, body, dvel) {
+    // friction applies only if moving into a touched surface
+    var restDir = body.resting[axis]
+    var vNormal = dvel[axis]
+    if (restDir === 0) return
+    if (restDir * vNormal <= 0) return
+
+    // current vel lateral to friction axis
+    vec3.copy(lateralVel, body.velocity)
+    lateralVel[axis] = 0
+    var vCurr = vec3.length(lateralVel)
+    if (equals(vCurr, 0)) return
+
+    // treat current change in velocity as the result of a pseudoforce
+    //        Fpseudo = m*dv/dt
+    // Base friction force on normal component of the pseudoforce
+    //        Ff = u * Fnormal
+    //        Ff = u * m * dvnormal / dt
+    // change in velocity due to friction force
+    //        dvF = dt * Ff / m
+    //            = dt * (u * m * dvnormal / dt) / m
+    //            = u * dvnormal
+    var dvMax = Math.abs(body.friction * vNormal)
+
+    // decrease lateral vel by dvMax (or clamp to zero)
+    var scaler = (vCurr > dvMax) ? (vCurr - dvMax) / vCurr : 0
+    body.velocity[(axis + 1) % 3] *= scaler
+    body.velocity[(axis + 2) % 3] *= scaler
+}
+var lateralVel = vec3.create()
+
+
+
+
+
+
+/*
+ *    COLLISION HANDLER
+*/
+
+// sweep aabb along velocity vector and set resting vector
 function processCollisions(self, box, velocity, resting) {
     vec3.set(resting, 0, 0, 0)
     return sweep(self.testSolid, box, velocity, function (dist, axis, dir, vec) {
@@ -220,6 +269,13 @@ function processCollisions(self, box, velocity, resting) {
     })
 }
 
+
+
+
+
+/*
+ *    AUTO-STEPPING
+*/
 
 var tmpBox = new aabb([], [])
 var tmpResting = vec3.create()
@@ -246,7 +302,7 @@ function tryAutoStepping(self, b, oldBox, dx) {
 
     // move towards the target until the first X/Z collision
     var getVoxels = self.testSolid
-    var d1 = sweep(getVoxels, oldBox, dx, function (dist, axis, dir, vec) {
+    sweep(getVoxels, oldBox, dx, function (dist, axis, dir, vec) {
         if (axis === 1) vec[axis] = 0
         else return true
     })
@@ -256,7 +312,7 @@ function tryAutoStepping(self, b, oldBox, dx) {
     vec3.set(upvec, 0, ydist, 0)
     var collided = false
     // sweep up, bailing on any obstruction
-    var d2 = sweep(getVoxels, oldBox, upvec, function (dist, axis, dir, vec) {
+    sweep(getVoxels, oldBox, upvec, function (dist, axis, dir, vec) {
         collided = true
         return true
     })
@@ -265,7 +321,7 @@ function tryAutoStepping(self, b, oldBox, dx) {
     // now move in X/Z however far was left over before hitting the obstruction
     vec3.subtract(leftover, targetPos, oldBox.base)
     leftover[1] = 0
-    var d3 = processCollisions(self, oldBox, leftover, tmpResting)
+    processCollisions(self, oldBox, leftover, tmpResting)
 
     // bail if no movement happened in the originally blocked direction
     if (xBlocked && !equals(oldBox.base[0], targetPos[0])) return
@@ -279,21 +335,31 @@ function tryAutoStepping(self, b, oldBox, dx) {
 }
 
 
-// check if body is, and can stay, asleep
+
+
+
+/*
+ *    SLEEP CHECK
+*/
+
 function bodyAsleep(self, body, dt, noGravity) {
     if (body._sleepFrameCount > 0) return false
     // without gravity bodies stay asleep until a force/impulse wakes them up
     if (noGravity) return true
     // otherwise check body is resting against something
-    // i.e. sweep along by dv=g*dt and check there's still a collision
+    // i.e. sweep along by distance d = 1/2 g*t^2
+    // and check there's still a collision
     var isResting = false
-    vec3.scale(dv, self.gravity, dt)
-    sweep(self.testSolid, body.aabb, dv, function () {
+    var gmult = 0.5 * dt * dt * body.gravityMultiplier
+    vec3.scale(sleepVec, self.gravity, gmult)
+    sweep(self.testSolid, body.aabb, sleepVec, function () {
         isResting = true
         return true
     }, true)
     return isResting
 }
+var sleepVec = vec3.create()
+
 
 
 
@@ -307,3 +373,5 @@ function cloneAABB(tgt, src) {
         tgt.vec[i] = src.vec[i]
     }
 }
+
+
