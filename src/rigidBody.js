@@ -24,12 +24,15 @@ function RigidBody(_aabb, mass, friction, restitution, gravMult, onCollide, auto
     this.gravityMultiplier = gravMult
     this.onCollide = onCollide
     this.autoStep = !!autoStep
-    this.airFriction = 0 // overrides global airFriction if nonzero
+    this.airDrag = -1   // overrides global airDrag when >= 0
+    this.fluidDrag = -1 // overrides global fluidDrag when >= 0
     this.onStep = null
+    
     // internals
     this.velocity = vec3.create()
     this.resting = [0, 0, 0]
     this.inFluid = false
+    this._ratioInFluid = 0
     this._forces = vec3.create()
     this._impulses = vec3.create()
     this._sleepFrameCount = 10 | 0

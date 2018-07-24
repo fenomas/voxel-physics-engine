@@ -46,6 +46,9 @@ phys.removeBody( body )
   
 #### Changes in latest version:
 
+ * `0.9.0`
+   * Air and fluid friction properties renamed to `airDrag` and `fluidDrag`, and now work equivalently (no drag at `0`, large drag at `1`)
+   * Per body `airDrag` and `fluidDrag` override global settings if `>= 0`
  * `0.8.0`
    * Friction now uses regular coefficients, and works in all directions, not just downwards
    * Bodies have an `.airFriction` that overrides the global value (if nonzero)

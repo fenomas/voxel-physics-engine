@@ -12,10 +12,10 @@ module.exports = function (opts, testSolid, testFluid) {
 
 var defaults = {
     gravity: [0, -10, 0],
-    airFriction: 0.9,
     minBounceImpulse: .5, // lowest collision impulse that bounces
-    fluidDensity: 1.2,
-    fluidDrag: 2.0,
+    airDrag: 0.1,
+    fluidDrag: 0.4,
+    fluidDensity: 2.0,
 }
 
 
@@ -29,7 +29,7 @@ function Physics(opts, testSolid, testFluid) {
     opts = Object.assign({}, defaults, opts)
 
     this.gravity = opts.gravity
-    this.airFriction = opts.airFriction
+    this.airDrag = opts.airDrag
     this.fluidDensity = opts.fluidDensity
     this.fluidDrag = opts.fluidDrag
     this.minBounceImpulse = opts.minBounceImpulse
@@ -71,9 +71,7 @@ Physics.prototype.removeBody = function (b) {
  *    PHYSICS AND COLLISIONS
 */
 
-var friction = vec3.create()
 var a = vec3.create()
-var g = vec3.create()
 var dv = vec3.create()
 var dx = vec3.create()
 var impacts = vec3.create()
@@ -105,6 +103,9 @@ function iterateBody(self, b, dt, noGravity) {
     if (bodyAsleep(self, b, dt, localNoGrav)) return
     b._sleepFrameCount--
 
+    // check if under water, if so apply buoyancy and drag forces
+    applyFluidForces(self, b)
+
     // semi-implicit Euler integration
 
     // a = f/m + gravity*gravityMultiplier
@@ -124,11 +125,15 @@ function iterateBody(self, b, dt, noGravity) {
         applyFrictionByAxis(2, b, dv)
     }
 
-    // linear air friction - effectively v *= drag
-    // body airFriction overrides global airFriction
-    var drag = b.airFriction || self.airFriction
-    var dmult = 1 - (1 - drag) * dt / b.mass
-    vec3.scale(b.velocity, b.velocity, dmult)
+    // linear air or fluid friction - effectively v *= drag
+    // body settings override global settings
+    var drag = (b.airDrag >= 0) ? b.airDrag : self.airDrag
+    if (b.inFluid) {
+        drag = (b.fluidDrag >= 0) ? b.fluidDrag : self.fluidDrag
+        drag *= 1 - (1 - b.ratioInFluid) ** 2
+    }
+    var mult = Math.max(1 - drag * dt / b.mass, 0)
+    vec3.scale(b.velocity, b.velocity, mult)
 
     // x1-x0 = v1*dt
     vec3.scale(dx, b.velocity, dt)
@@ -170,46 +175,61 @@ function iterateBody(self, b, dt, noGravity) {
         if (b.onCollide) b.onCollide(impacts)
     }
 
-    // First pass at handling fluids. Assumes fluids are settled
-    //   thus, only check at center of body, and only from bottom up
-    var box = b.aabb
-    var cx = Math.floor((box.base[0] + box.max[0]) / 2)
-    var cz = Math.floor((box.base[2] + box.max[2]) / 2)
-    var y0 = Math.floor(box.base[1])
-    var y1 = Math.floor(box.max[1])
-    var submerged = 0
-    for (var cy = y0; cy <= y1; ++cy) {
-        if (self.testFluid(cx, cy, cz)) {
-            ++submerged
-        } else {
-            break
-        }
-    }
-
-    if (submerged > 0) {
-        // find how much of body is submerged
-        var fluidLevel = y0 + submerged
-        var heightInFluid = fluidLevel - box.base[1]
-        var ratioInFluid = heightInFluid / box.vec[1]
-        if (ratioInFluid > 1) ratioInFluid = 1
-        var vol = box.vec[0] * box.vec[1] * box.vec[2]
-        var displaced = vol * ratioInFluid
-        // bouyant force = -gravity * fluidDensity * volumeDisplaced
-        vec3.scale(g, self.gravity, -self.fluidDensity * displaced)
-        // drag force = -dv for some constant d. Here scale it down by ratioInFluid
-        vec3.scale(friction, b.velocity, -self.fluidDrag * ratioInFluid)
-        vec3.add(g, g, friction)
-        b.applyForce(g)
-        b.inFluid = true
-    } else {
-        b.inFluid = false
-    }
 
     // sleep check
     var vsq = vec3.squaredLength(b.velocity)
     if (vsq > 1e-5) b._markActive()
 }
 
+
+
+
+
+
+
+
+/*
+ *    FLUIDS
+*/
+
+function applyFluidForces(self, body) {
+    // First pass at handling fluids. Assumes fluids are settled
+    //   thus, only check at corner of body, and only from bottom up
+    var box = body.aabb
+    var cx = Math.floor(box.base[0])
+    var cz = Math.floor(box.base[2])
+    var y0 = Math.floor(box.base[1])
+    var y1 = Math.floor(box.max[1])
+
+    if (!self.testFluid(cx, y0, cz)) {
+        body.inFluid = false
+        body.ratioInFluid = 0
+        return
+    }
+
+    // body is in a fluid - find out how much of body is submerged
+    var submerged = 1
+    var cy = y0 + 1
+    while (cy <= y1 && self.testFluid(cx, cy, cz)) {
+        submerged++
+        cy++
+    }
+    var fluidLevel = y0 + submerged
+    var heightInFluid = fluidLevel - box.base[1]
+    var ratioInFluid = heightInFluid / box.vec[1]
+    if (ratioInFluid > 1) ratioInFluid = 1
+    var vol = box.vec[0] * box.vec[1] * box.vec[2]
+    var displaced = vol * ratioInFluid
+    // bouyant force = -gravity * fluidDensity * volumeDisplaced
+    var f = _fluidVec
+    vec3.scale(f, self.gravity, -self.fluidDensity * displaced)
+    body.applyForce(f)
+
+    body.inFluid = true
+    body.ratioInFluid = ratioInFluid
+}
+
+var _fluidVec = vec3.create()
 
 
 
