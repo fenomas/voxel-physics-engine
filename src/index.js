@@ -6,6 +6,9 @@ var sweep = require('voxel-aabb-sweep')
 var RigidBody = require('./rigidBody')
 
 
+var DEBUG = 0
+
+
 module.exports = function (opts, testSolid, testFluid) {
     return new Physics(opts, testSolid, testFluid)
 }
@@ -98,13 +101,27 @@ Physics.prototype.tick = function (dt) {
 function iterateBody(self, b, dt, noGravity) {
     vec3.copy(oldResting, b.resting)
 
-    // skip bodies with no velocity/forces/impulses
+    // treat bodies with <= mass as static
+    if (b.mass <= 0) {
+        vec3.set(b.velocity, 0, 0, 0)
+        vec3.set(b._forces, 0, 0, 0)
+        vec3.set(b._impulses, 0, 0, 0)
+        return
+    }
+
+    // skip bodies if static or no velocity/forces/impulses
     var localNoGrav = noGravity || (b.gravityMultiplier === 0)
     if (bodyAsleep(self, b, dt, localNoGrav)) return
     b._sleepFrameCount--
 
     // check if under water, if so apply buoyancy and drag forces
     applyFluidForces(self, b)
+
+    // debug hooks
+    sanityCheck(b._forces)
+    sanityCheck(b._impulses)
+    sanityCheck(b.velocity)
+    sanityCheck(b.resting)
 
     // semi-implicit Euler integration
 
@@ -395,3 +412,8 @@ function cloneAABB(tgt, src) {
 }
 
 
+
+var sanityCheck = function () { }
+if (DEBUG) sanityCheck = function (v) {
+    if (isNaN(vec3.length(v))) throw 'Vector with NAN: ', v
+}
