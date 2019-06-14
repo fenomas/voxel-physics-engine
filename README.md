@@ -46,6 +46,9 @@ phys.removeBody( body )
   
 #### Changes in latest version:
 
+ * `0.10.0`
+   * Fixes `body.onCollide` arg to be a correctly scaled impulse vector
+   * Body `onCollide` now passed before bounces are resolved (allowing client to adjust `body.restitution` depending on the terrain)
  * `0.9.0`
    * Air and fluid friction properties renamed to `airDrag` and `fluidDrag`, and now work equivalently (no drag at `0`, large drag at `1`)
    * Per body `airDrag` and `fluidDrag` override global settings if `>= 0`

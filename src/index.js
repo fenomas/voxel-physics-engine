@@ -183,13 +183,17 @@ function iterateBody(self, b, dt, noGravity) {
     }
     var mag = vec3.length(impacts)
     if (mag > .001) { // epsilon
-        // bounce if over minBounceImpulse
-        if (mag > self.minBounceImpulse && b.restitution) {
-            vec3.scale(impacts, impacts, b.restitution * b.mass)
+        // send collision event - allows client to optionally change
+        // body's restitution depending on what terrain it hit
+        // event argument is impulse J = m * dv
+        vec3.scale(impacts, impacts, b.mass)
+        if (b.onCollide) b.onCollide(impacts)
+
+        // bounce depending on restitution and minBounceImpulse
+        if (b.restitution > 0 && mag > self.minBounceImpulse) {
+            vec3.scale(impacts, impacts, b.restitution)
             b.applyImpulse(impacts)
         }
-        // send collision event regardless
-        if (b.onCollide) b.onCollide(impacts)
     }
 
 
