@@ -1,4 +1,3 @@
-'use strict'
 
 var aabb = require('aabb-3d')
 var vec3 = require('gl-vec3')
@@ -27,7 +26,7 @@ function RigidBody(_aabb, mass, friction, restitution, gravMult, onCollide, auto
     this.airDrag = -1   // overrides global airDrag when >= 0
     this.fluidDrag = -1 // overrides global fluidDrag when >= 0
     this.onStep = null
-    
+
     // internals
     this.velocity = vec3.create()
     this.resting = [0, 0, 0]
@@ -72,7 +71,7 @@ RigidBody.prototype.atRestZ = function () { return this.resting[2] }
 
 
 
-var sanityCheck = function () { }
+var sanityCheck = function (v) { }
 if (DEBUG) sanityCheck = function (v) {
-    if (isNaN(vec3.length(v))) throw 'Vector with NAN: ', v
+    if (isNaN(vec3.length(v))) throw 'Vector with NAN: ' + v
 }

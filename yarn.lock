@@ -3,15 +3,16 @@
 
 
 "aabb-3d@github:andyhall/aabb-3d":
-  version "0.2.1"
-  resolved "https://codeload.github.com/andyhall/aabb-3d/tar.gz/6b0fb3ce72d4e8e5e8fb3e4b3581a194d952b8fa"
+  "resolved" "git+ssh://git@github.com/andyhall/aabb-3d.git#6b0fb3ce72d4e8e5e8fb3e4b3581a194d952b8fa"
+  "version" "0.2.1"
   dependencies:
-    gl-vec3 "^1.0.3"
+    "gl-vec3" "^1.0.3"
 
-gl-vec3@^1.0.3:
-  version "1.0.3"
-  resolved "https://registry.yarnpkg.com/gl-vec3/-/gl-vec3-1.0.3.tgz#110fd897d0729f6398307381567d0944941bf22b"
+"gl-vec3@^1.0.3", "gl-vec3@^1.1.3":
+  "integrity" "sha512-jduKUqT0SGH02l8Yl+mV1yVsDfYgQAJyXGxkJQGyxPLHRiW25DwVIRPt6uvhrEMHftJfqhqKthRcyZqNEl9Xdw=="
+  "resolved" "https://registry.npmjs.org/gl-vec3/-/gl-vec3-1.1.3.tgz"
+  "version" "1.1.3"
 
-voxel-aabb-sweep@^0.5.0:
-  version "0.5.0"
-  resolved "https://registry.yarnpkg.com/voxel-aabb-sweep/-/voxel-aabb-sweep-0.5.0.tgz#af4246eed88f15978390832251733067667e3a8b"
+"voxel-aabb-sweep@^0.5.0":
+  "resolved" "https://registry.npmjs.org/voxel-aabb-sweep/-/voxel-aabb-sweep-0.5.0.tgz"
+  "version" "0.5.0"

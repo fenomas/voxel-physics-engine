@@ -24,10 +24,11 @@ and the engine will manage all the physics and collisions.
 #### Example
 
 ``` javascript
-var makePhysics = require('voxel-physics-engine')
+import {Physics} from 'voxel-physics-engine'
 var opts = { gravity: [0,-10,0] }
 var getter = function(x,y,z) { /* your logic here */ }
-var phys = makePhysics( opts, getter )
+
+var phys = new Physics(opts, getter)
 var body = phys.addBody( aabb, mass, friction, restitution, gravityMult, onCollide, autoStep )
 phys.tick( dt_in_miliseconds )
 phys.removeBody( body )
@@ -46,6 +47,8 @@ phys.removeBody( body )
   
 #### Changes in latest version:
 
+ * `0.11.0`
+   * Export a named constructor function instead of a callback
  * `0.10.0`
    * Fixes `body.onCollide` arg to be a correctly scaled impulse vector
    * Body `onCollide` now passed before bounces are resolved (allowing client to adjust `body.restitution` depending on the terrain)

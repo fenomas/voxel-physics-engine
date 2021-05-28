@@ -1,4 +1,3 @@
-'use strict'
 
 var aabb = require('aabb-3d')
 var vec3 = require('gl-vec3')
@@ -9,9 +8,7 @@ var RigidBody = require('./rigidBody')
 var DEBUG = 0
 
 
-module.exports = function (opts, testSolid, testFluid) {
-    return new Physics(opts, testSolid, testFluid)
-}
+
 
 var defaults = {
     gravity: [0, -10, 0],
@@ -22,13 +19,15 @@ var defaults = {
 }
 
 
+
+
 /* 
  *    CONSTRUCTOR - represents a world of rigid bodies.
  * 
  *  Takes testSolid(x,y,z) function to query block solidity
  *  Takes testFluid(x,y,z) function to query if a block is a fluid
 */
-function Physics(opts, testSolid, testFluid) {
+export function Physics(opts, testSolid, testFluid) {
     opts = Object.assign({}, defaults, opts)
 
     this.gravity = opts.gravity
@@ -417,7 +416,7 @@ function cloneAABB(tgt, src) {
 
 
 
-var sanityCheck = function () { }
+var sanityCheck = function (v) { }
 if (DEBUG) sanityCheck = function (v) {
     if (isNaN(vec3.length(v))) throw 'Vector with NAN: ', v
 }
