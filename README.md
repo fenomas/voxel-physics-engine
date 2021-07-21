@@ -2,7 +2,7 @@
 An abstracted physics engine for voxel game engines.
 
 This implements reasonably realistic physics for voxel games.
-It was made to work with [noa](https://github.com/andyhall/noa) 
+It was made to work with [noa](https://github.com/fenomas/noa) 
 or `voxel.js`, but it just takes references to 
 an abstracted `getBlock(x,y,z)` function and plain vectors, 
 so it can be used with other engines. 
@@ -10,8 +10,8 @@ so it can be used with other engines.
 This replaces [voxel-physical](https://github.com/chrisdickinson/voxel-physical),
 though it works quite differently and behaves more physically.
 
-The engine can be seen in action in [noa](https://github.com/andyhall/noa) or projects using it
-(such as [this talk on voxels](http://andyhall.github.io/noa-lt/).
+The engine can be seen in action in [noa](https://github.com/fenomas/noa) or projects using it
+(such as [this talk on voxels](http://fenomas.github.io/noa-lt/).
 
 ###Usage:
  1. Create engine and supply a `getBlock(x,y,z)`-like function (which should return true when block xyz is solid)
