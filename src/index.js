@@ -11,21 +11,37 @@ var DEBUG = 0
 
 
 var defaults = {
-    gravity: [0, -10, 0],
-    minBounceImpulse: .5, // lowest collision impulse that bounces
     airDrag: 0.1,
     fluidDrag: 0.4,
     fluidDensity: 2.0,
+    gravity: [0, -10, 0],
+    minBounceImpulse: .5, // lowest collision impulse that bounces
 }
 
 
 
 
-/* 
- *    CONSTRUCTOR - represents a world of rigid bodies.
+/**
+ *          Voxel Physics Engine
  * 
- *  Takes testSolid(x,y,z) function to query block solidity
- *  Takes testFluid(x,y,z) function to query if a block is a fluid
+ * Models a world of rigid bodies, to be integrated against
+ * solid or liquid voxel terrain.
+ * 
+ * Takes `testSolid(x,y,z)` function to query block solidity
+ * Takes `testFluid(x,y,z)` function to query if a block is a fluid
+ *  
+ * The `options` argument can take the following params:
+ * 
+ * ```js
+ * {
+ *     airDrag: 0.1,
+ *     fluidDrag: 0.4,
+ *     fluidDensity: 2.0,
+ *     gravity: [0, -10, 0],
+ *     minBounceImpulse: .5, // lowest collision impulse that bounces
+ * }
+ * 
+ * ```
 */
 export function Physics(opts, testSolid, testFluid) {
     opts = Object.assign({}, defaults, opts)
@@ -43,10 +59,10 @@ export function Physics(opts, testSolid, testFluid) {
 }
 
 
-/*
- *    ADDING AND REMOVING RIGID BODIES
+/** 
+ * Adds a physics body to the simulation
+ * @returns {RigidBody}
 */
-
 Physics.prototype.addBody = function (_aabb, mass, friction,
     restitution, gravMult, onCollide) {
     _aabb = _aabb || new aabb([0, 0, 0], [1, 1, 1])
@@ -59,6 +75,7 @@ Physics.prototype.addBody = function (_aabb, mass, friction,
     return b
 }
 
+/** Removes a body, by direct reference */
 Physics.prototype.removeBody = function (b) {
     var i = this.bodies.indexOf(b)
     if (i < 0) return undefined
@@ -80,14 +97,11 @@ var impacts = vec3.create()
 var oldResting = vec3.create()
 
 
-/*
- *    TICK HANDLER
-*/
+/* Ticks the simulation forwards in time. */
 Physics.prototype.tick = function (dt) {
     // convert dt to seconds
     dt = dt / 1000
     var noGravity = equals(0, vec3.squaredLength(this.gravity))
-
     this.bodies.forEach(b => iterateBody(this, b, dt, noGravity))
 }
 
@@ -418,5 +432,5 @@ function cloneAABB(tgt, src) {
 
 var sanityCheck = function (v) { }
 if (DEBUG) sanityCheck = function (v) {
-    if (isNaN(vec3.length(v))) throw 'Vector with NAN: ', v
+    if (isNaN(vec3.length(v))) throw 'Vector with NAN: ' + v
 }

@@ -27,13 +27,19 @@ function RigidBody(_aabb, mass, friction, restitution, gravMult, onCollide, auto
     this.fluidDrag = -1 // overrides global fluidDrag when >= 0
     this.onStep = null
 
-    // internals
+    // internal state
     this.velocity = vec3.create()
     this.resting = [0, 0, 0]
     this.inFluid = false
+
+    // internals
+    /** @internal */
     this._ratioInFluid = 0
+    /** @internal */
     this._forces = vec3.create()
+    /** @internal */
     this._impulses = vec3.create()
+    /** @internal */
     this._sleepFrameCount = 10 | 0
 }
 
@@ -56,6 +62,8 @@ RigidBody.prototype.applyImpulse = function (i) {
     vec3.add(this._impulses, this._impulses, i)
     this._markActive()
 }
+
+/** @internal */
 RigidBody.prototype._markActive = function () {
     this._sleepFrameCount = 10 | 0
 }
