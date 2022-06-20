@@ -2,20 +2,20 @@
 var aabb = require('aabb-3d')
 var vec3 = require('gl-vec3')
 var sweep = require('voxel-aabb-sweep')
-var RigidBody = require('./rigidBody')
+
+import { RigidBody } from './rigidBody'
+export { RigidBody }
 
 
 var DEBUG = 0
 
 
-
-
-var defaults = {
-    airDrag: 0.1,
-    fluidDrag: 0.4,
-    fluidDensity: 2.0,
-    gravity: [0, -10, 0],
-    minBounceImpulse: .5, // lowest collision impulse that bounces
+export function DefaultOptions() {
+    this.airDrag = 0.1
+    this.fluidDrag = 0.4
+    this.fluidDensity = 2.0
+    this.gravity = [0, -10, 0]
+    this.minBounceImpulse = .5 // lowest collision impulse that bounces
 }
 
 
@@ -40,16 +40,19 @@ var defaults = {
  *     gravity: [0, -10, 0],
  *     minBounceImpulse: .5, // lowest collision impulse that bounces
  * }
- * 
  * ```
+ * 
+ * @param {(x:number, y:number, z:number) => boolean} testSolid
+ * @param {(x:number, y:number, z:number) => boolean} testFluid
+ * 
 */
 export function Physics(opts, testSolid, testFluid) {
-    opts = Object.assign({}, defaults, opts)
+    opts = Object.assign(new DefaultOptions(), opts)
 
-    this.gravity = opts.gravity
-    this.airDrag = opts.airDrag
-    this.fluidDensity = opts.fluidDensity
-    this.fluidDrag = opts.fluidDrag
+    this.gravity = opts.gravity || [0, -10, 0]
+    this.airDrag = opts.airDrag || 0.1
+    this.fluidDensity = opts.fluidDensity || 2.0
+    this.fluidDrag = opts.fluidDrag || 0.4
     this.minBounceImpulse = opts.minBounceImpulse
     this.bodies = []
 
