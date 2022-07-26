@@ -39,6 +39,7 @@ export function DefaultOptions() {
  *     fluidDensity: 2.0,
  *     gravity: [0, -10, 0],
  *     minBounceImpulse: .5, // lowest collision impulse that bounces
+ *     isBodyInsideUnloadedBlock: returns a boolean of whether the body is within an unloaded block
  * }
  * ```
  * 
