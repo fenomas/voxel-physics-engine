@@ -37,6 +37,8 @@ export function Physics(opts, testSolid, testFluid) {
     this.minBounceImpulse = opts.minBounceImpulse
     this.bodies = []
 
+    this.isBodyInsideUnloadedBlock = opts.isBodyInsideUnloadedBlock
+
     // collision function - TODO: abstract this into a setter?
     this.testSolid = testSolid
     this.testFluid = testFluid
@@ -79,6 +81,9 @@ var dx = vec3.create()
 var impacts = vec3.create()
 var oldResting = vec3.create()
 
+var rollbackAabb = new aabb([0, 0, 0], [1, 1, 1])
+var rollbackBody = new RigidBody(rollbackAabb, 1, 1, 0, 1, () => {}, false)
+
 
 /*
  *    TICK HANDLER
@@ -99,6 +104,9 @@ Physics.prototype.tick = function (dt) {
 
 function iterateBody(self, b, dt, noGravity) {
     vec3.copy(oldResting, b.resting)
+    if (self.isBodyInsideUnloadedBlock) {
+        rollbackBody.loadFromCopy(b)
+    }
 
     // treat bodies with <= mass as static
     if (b.mass <= 0) {
@@ -199,6 +207,11 @@ function iterateBody(self, b, dt, noGravity) {
     // sleep check
     var vsq = vec3.squaredLength(b.velocity)
     if (vsq > 1e-5) b._markActive()
+
+    // If the body is now inside an unloaded block, rollback the body to before they were inside it.
+    if (self.isBodyInsideUnloadedBlock && self.isBodyInsideUnloadedBlock(b)) {
+        b.loadFromCopy(rollbackBody)
+    }
 }
 
 
@@ -364,8 +377,10 @@ function tryAutoStepping(self, b, oldBox, dx) {
     processCollisions(self, oldBox, leftover, tmpResting)
 
     // bail if no movement happened in the originally blocked direction
-    if (xBlocked && !equals(oldBox.base[0], targetPos[0])) return
-    if (zBlocked && !equals(oldBox.base[2], targetPos[2])) return
+    var xMovedToTarget = equals(oldBox.base[0], targetPos[0])
+    var zMovedToTarget = equals(oldBox.base[2], targetPos[2])
+    if (xBlocked && !xMovedToTarget && (!zMovedToTarget || !zBlocked)) return
+    if (zBlocked && (!xMovedToTarget || !xBlocked) && !zMovedToTarget) return
 
     // done - oldBox is now at the target autostepped position
     cloneAABB(b.aabb, oldBox)

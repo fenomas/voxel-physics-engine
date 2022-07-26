@@ -37,6 +37,32 @@ function RigidBody(_aabb, mass, friction, restitution, gravMult, onCollide, auto
     this._sleepFrameCount = 10 | 0
 }
 
+RigidBody.prototype.loadFromCopy = function (loadFrom) {
+    vec3.copy(this.aabb.base, loadFrom.aabb.base)
+    vec3.copy(this.aabb.vec, loadFrom.aabb.vec)
+    vec3.copy(this.aabb.max, loadFrom.aabb.max)
+    this.aabb.mag = loadFrom.aabb.mag
+
+    this.mass = loadFrom.mass
+    this.friction = loadFrom.friction
+    this.restitution = loadFrom.restitution
+    this.gravityMultiplier = loadFrom.gravityMultiplier
+    this.onCollide = loadFrom.onCollide
+    this.autoStep = loadFrom.autoStep
+
+    this.airDrag = loadFrom.airDrag
+    this.fluidDrag = loadFrom.fluidDrag
+    this.onStep = loadFrom.onStep
+
+    vec3.copy(this.velocity, loadFrom.velocity)
+    vec3.copy(this.resting, loadFrom.resting)
+    this.inFluid = loadFrom.inFluid
+    this._ratioInFluid = loadFrom._ratioInFluid
+    vec3.copy(this._forces, loadFrom._forces)
+    vec3.copy(this._impulses, loadFrom._impulses)
+    this._sleepFrameCount = loadFrom._sleepFrameCount
+}
+
 RigidBody.prototype.setPosition = function (p) {
     sanityCheck(p)
     vec3.subtract(p, p, this.aabb.base)
