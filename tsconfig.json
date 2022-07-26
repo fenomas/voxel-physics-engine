@@ -1,0 +1,27 @@
+{
+    // inputs
+    "include": [
+        "src/*.js",
+    ],
+    "exclude": [
+        "node_modules",
+    ],
+    "compilerOptions": {
+        // output
+        "outDir": "./dist",
+        "target": "es5",
+        "declaration": true,
+        "emitDeclarationOnly": true,
+        "rootDir": ".",
+        // settings
+        "allowJs": true,
+        "checkJs": true,
+        "resolveJsonModule": true,
+        "esModuleInterop": true,
+        "lib": [
+            "DOM",
+            "DOM.Iterable",
+            "ES2018"
+        ],
+    },
+}

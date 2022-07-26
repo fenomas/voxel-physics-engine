@@ -1,10 +1,11 @@
 {
   "name": "voxel-physics-engine",
-  "version": "0.11.0",
+  "version": "0.12.0",
   "description": "Simple but physical engine for voxel games",
   "main": "src/index.js",
+  "types": "dist/src/index.d.ts",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "types": "tsc"
   },
   "author": "Andy Hall",
   "license": "MIT",
