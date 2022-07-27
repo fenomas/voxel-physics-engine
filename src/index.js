@@ -101,6 +101,8 @@ var dv = vec3.create()
 var dx = vec3.create()
 var impacts = vec3.create()
 var oldResting = vec3.create()
+var beforePreventFallDx = vec3.create()
+var preventFallResting = vec3.create()
 
 var rollbackAabb = new aabb([0, 0, 0], [1, 1, 1])
 var rollbackBody = new RigidBody(rollbackAabb, 1, 1, 0, 1, () => {}, false)
@@ -189,16 +191,24 @@ function iterateBody(self, b, dt, noGravity) {
         cloneAABB(tmpBox, b.aabb)
     }
 
+    vec3.copy(beforePreventFallDx, dx)
+    vec3.set(preventFallResting, 0, 0, 0)
+    if (b.preventFallOffEdge) {
+        tryPreventFallOffEdge(self, b, dx, preventFallResting)
+    }
+
     // sweeps aabb along dx and accounts for collisions
     processCollisions(self, b.aabb, dx, b.resting)
 
     // if autostep, and on ground, run collisions again with stepped up aabb
     if (b.autoStep) {
-        tryAutoStepping(self, b, tmpBox, dx)
+        tryAutoStepping(self, b, tmpBox, beforePreventFallDx)
     }
 
     // Collision impacts. b.resting shows which axes had collisions:
     for (var i = 0; i < 3; ++i) {
+        b.resting[i] = b.resting[i] || preventFallResting[i]
+
         impacts[i] = 0
         if (b.resting[i]) {
             // count impact only if wasn't collided last frame
@@ -400,7 +410,17 @@ function tryAutoStepping(self, b, oldBox, dx) {
     if (xBlocked && !xMovedToTarget && (!zMovedToTarget || !zBlocked)) return
     if (zBlocked && (!xMovedToTarget || !xBlocked) && !zMovedToTarget) return
 
-    // done - oldBox is now at the target autostepped position
+    // oldBox is now at the target autostepped position. 
+    // Check there is a block under the new position as it is possible to go diagonally off a block and not be standing on anything
+    var moveIsBad = true
+    moveIsBad = moveIsBad && !solidBlockUnderPos(self, oldBox.base[0], oldBox.base[1], oldBox.base[2]) // bot left
+    moveIsBad = moveIsBad && !solidBlockUnderPos(self, oldBox.base[0], oldBox.base[1], oldBox.max[2]) // bot right
+    moveIsBad = moveIsBad && !solidBlockUnderPos(self, oldBox.max[0], oldBox.base[1], oldBox.base[2]) // top left
+    moveIsBad = moveIsBad && !solidBlockUnderPos(self, oldBox.max[0], oldBox.base[1], oldBox.max[2]) // top right
+    if (moveIsBad) {
+        return
+    }
+    // done
     cloneAABB(b.aabb, oldBox)
     b.resting[0] = tmpResting[0]
     b.resting[2] = tmpResting[2]
@@ -409,6 +429,40 @@ function tryAutoStepping(self, b, oldBox, dx) {
 
 
 
+// Approach the prevention of falling off the edge by zero-ing out components of movement that would cause falling off the edge
+var compWiseDx = vec3.create()
+var preventFallTmpBox = new aabb([], [])
+function tryPreventFallOffEdge(self, b, dx, preventFallResting) {
+    if (!b.resting[1] || dx[1] > 0) return
+
+    var t = preventFallTmpBox
+    cloneAABB(t, b.aabb)
+
+    for (var i=0; i<3; i+=2) {
+        
+        vec3.set(compWiseDx, 0, 0, 0)
+        compWiseDx[i] = dx[i]
+
+        var moveIsBad = true
+        moveIsBad = moveIsBad && !solidBlockUnderPos(self, t.base[0]+compWiseDx[0], t.base[1], t.base[2]+compWiseDx[2]) // bot left
+        moveIsBad = moveIsBad && !solidBlockUnderPos(self, t.base[0]+compWiseDx[0], t.base[1], t.max[2]+compWiseDx[2]) // bot right
+        moveIsBad = moveIsBad && !solidBlockUnderPos(self, t.max[0]+compWiseDx[0], t.base[1], t.base[2]+compWiseDx[2]) // top left
+        moveIsBad = moveIsBad && !solidBlockUnderPos(self, t.max[0]+compWiseDx[0], t.base[1], t.max[2]+compWiseDx[2]) // top right
+
+        if (moveIsBad) {
+            preventFallResting[i] = dx[i] > 0 ? 1 : -1
+            dx[i] = 0
+        }
+        else {
+            t.base[i] += compWiseDx[i]
+            t.max[i] += compWiseDx[i]
+        }
+    }
+}
+
+function solidBlockUnderPos(self, x, y, z) {
+    return self.testSolid(Math.floor(x), Math.floor(y-1), Math.floor(z))
+}
 
 
 /*

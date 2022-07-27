@@ -24,6 +24,8 @@ export class RigidBody {
         this.fluidDrag = -1 // overrides global fluidDrag when >= 0
         this.onStep = null
 
+        this.preventFallOffEdge = false
+
         // internal state
         this.velocity = vec3.create()
         this.resting = [0, 0, 0]
@@ -56,6 +58,8 @@ export class RigidBody {
         this.airDrag = loadFrom.airDrag
         this.fluidDrag = loadFrom.fluidDrag
         this.onStep = loadFrom.onStep
+
+        this.preventFallOffEdge = loadFrom.preventFallOffEdge
     
         vec3.copy(this.velocity, loadFrom.velocity)
         vec3.copy(this.resting, loadFrom.resting)
