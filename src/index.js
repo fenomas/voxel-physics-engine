@@ -413,10 +413,10 @@ function tryAutoStepping(self, b, oldBox, dx) {
     // oldBox is now at the target autostepped position. 
     // Check there is a block under the new position as it is possible to go diagonally off a block and not be standing on anything
     var moveIsBad = true
-    moveIsBad = moveIsBad && !solidBlockUnderPos(self, oldBox.base[0], oldBox.base[1], oldBox.base[2]) // bot left
-    moveIsBad = moveIsBad && !solidBlockUnderPos(self, oldBox.base[0], oldBox.base[1], oldBox.max[2]) // bot right
-    moveIsBad = moveIsBad && !solidBlockUnderPos(self, oldBox.max[0], oldBox.base[1], oldBox.base[2]) // top left
-    moveIsBad = moveIsBad && !solidBlockUnderPos(self, oldBox.max[0], oldBox.base[1], oldBox.max[2]) // top right
+    moveIsBad = moveIsBad && !solidBlockUnderPos(self, oldBox.base[0]+1e-5, oldBox.base[1], oldBox.base[2]+1e-5) // bot left
+    moveIsBad = moveIsBad && !solidBlockUnderPos(self, oldBox.max[0]-1e-5, oldBox.base[1], oldBox.base[2]+1e-5) // bot right
+    moveIsBad = moveIsBad && !solidBlockUnderPos(self, oldBox.base[0]+1e-5, oldBox.base[1], oldBox.max[2]-1e-5) // top left
+    moveIsBad = moveIsBad && !solidBlockUnderPos(self, oldBox.max[0]-1e-5, oldBox.base[1], oldBox.max[2]-1e-5) // top right
     if (moveIsBad) {
         return
     }
@@ -432,6 +432,7 @@ function tryAutoStepping(self, b, oldBox, dx) {
 // Approach the prevention of falling off the edge by zero-ing out components of movement that would cause falling off the edge
 var compWiseDx = vec3.create()
 var preventFallTmpBox = new aabb([], [])
+var preventFallXPush = vec3.create()
 function tryPreventFallOffEdge(self, b, dx, preventFallResting) {
     if (!b.resting[1] || dx[1] > 0) return
 
@@ -444,18 +445,18 @@ function tryPreventFallOffEdge(self, b, dx, preventFallResting) {
         compWiseDx[i] = dx[i]
 
         var moveIsBad = true
-        moveIsBad = moveIsBad && !solidBlockUnderPos(self, t.base[0]+compWiseDx[0], t.base[1], t.base[2]+compWiseDx[2]) // bot left
-        moveIsBad = moveIsBad && !solidBlockUnderPos(self, t.base[0]+compWiseDx[0], t.base[1], t.max[2]+compWiseDx[2]) // bot right
-        moveIsBad = moveIsBad && !solidBlockUnderPos(self, t.max[0]+compWiseDx[0], t.base[1], t.base[2]+compWiseDx[2]) // top left
-        moveIsBad = moveIsBad && !solidBlockUnderPos(self, t.max[0]+compWiseDx[0], t.base[1], t.max[2]+compWiseDx[2]) // top right
+        moveIsBad = moveIsBad && !solidBlockUnderPos(self, t.base[0]+compWiseDx[0]+1e-5, t.base[1], t.base[2]+compWiseDx[2]+1e-5) // bot left
+        moveIsBad = moveIsBad && !solidBlockUnderPos(self, t.max[0]+compWiseDx[0]-1e-5, t.base[1], t.base[2]+compWiseDx[2]+1e-5) // bot right
+        moveIsBad = moveIsBad && !solidBlockUnderPos(self, t.base[0]+compWiseDx[0]+1e-5, t.base[1], t.max[2]+compWiseDx[2]-1e-5) // top left
+        moveIsBad = moveIsBad && !solidBlockUnderPos(self, t.max[0]+compWiseDx[0]-1e-5, t.base[1], t.max[2]+compWiseDx[2]-1e-5) // top right
 
         if (moveIsBad) {
             preventFallResting[i] = dx[i] > 0 ? 1 : -1
             dx[i] = 0
         }
-        else {
-            t.base[i] += compWiseDx[i]
-            t.max[i] += compWiseDx[i]
+        else if (i === 0) {
+            vec3.set(preventFallXPush, dx[0], 0, 0)
+            processCollisions(self, t, preventFallXPush, preventFallResting)
         }
     }
 }
