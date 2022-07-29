@@ -25,6 +25,7 @@ export class RigidBody {
         this.onStep = null
 
         this.preventFallOffEdge = false
+        this.alwaysApplyHorizFriction = false
 
         // internal state
         this.velocity = vec3.create()

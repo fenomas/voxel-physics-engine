@@ -305,8 +305,10 @@ function applyFrictionByAxis(axis, body, dvel) {
     // friction applies only if moving into a touched surface
     var restDir = body.resting[axis]
     var vNormal = dvel[axis]
-    if (restDir === 0) return
-    if (restDir * vNormal <= 0) return
+    if (!body.alwaysApplyHorizFriction || axis !== 1) {
+        if (restDir === 0) return
+        if (restDir * vNormal <= 0) return
+    }
 
     // current vel lateral to friction axis
     vec3.copy(lateralVel, body.velocity)
