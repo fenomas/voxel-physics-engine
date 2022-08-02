@@ -164,9 +164,9 @@ function iterateBody(self, b, dt, noGravity) {
 
     // apply friction based on change in velocity this frame
     if (b.friction) {
-        applyFrictionByAxis(0, b, dv)
-        applyFrictionByAxis(1, b, dv)
-        applyFrictionByAxis(2, b, dv)
+        applyFrictionByAxis(self, 0, b, dv, dt)
+        applyFrictionByAxis(self, 1, b, dv, dt)
+        applyFrictionByAxis(self, 2, b, dv, dt)
     }
 
     // linear air or fluid friction - effectively v *= drag
@@ -301,7 +301,7 @@ var _fluidVec = vec3.create()
 */
 
 
-function applyFrictionByAxis(axis, body, dvel) {
+function applyFrictionByAxis(self, axis, body, dvel, dt) {
     // friction applies only if moving into a touched surface
     var restDir = body.resting[axis]
     var vNormal = dvel[axis]
@@ -326,6 +326,10 @@ function applyFrictionByAxis(axis, body, dvel) {
     //            = dt * (u * m * dvnormal / dt) / m
     //            = u * dvnormal
     var dvMax = Math.abs(body.friction * vNormal)
+    if (dvMax === 0) {
+        // Apply a gravityMultiplier 1 of vNormal if actual vNormal is 0 (because no gravity but we are alwaysApplyHorizFriction)
+        dvMax = Math.abs(body.friction * self.gravity[axis]*dt)
+    }
 
     // decrease lateral vel by dvMax (or clamp to zero)
     var scaler = (vCurr > dvMax) ? (vCurr - dvMax) / vCurr : 0
