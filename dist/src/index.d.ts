@@ -25,10 +25,13 @@ export class DefaultOptions {
  *     gravity: [0, -10, 0],
  *     minBounceImpulse: .5, // lowest collision impulse that bounces
  * }
- *
  * ```
+ *
+ * @param {(x:number, y:number, z:number) => boolean} testSolid
+ * @param {(x:number, y:number, z:number) => boolean} testFluid
+ *
 */
-export function Physics(opts: any, testSolid: any, testFluid: any): void;
+export function Physics(opts: any, testSolid: (x: number, y: number, z: number) => boolean, testFluid: (x: number, y: number, z: number) => boolean): void;
 export class Physics {
     /**
      *          Voxel Physics Engine
@@ -49,18 +52,21 @@ export class Physics {
      *     gravity: [0, -10, 0],
      *     minBounceImpulse: .5, // lowest collision impulse that bounces
      * }
-     *
      * ```
+     *
+     * @param {(x:number, y:number, z:number) => boolean} testSolid
+     * @param {(x:number, y:number, z:number) => boolean} testFluid
+     *
     */
-    constructor(opts: any, testSolid: any, testFluid: any);
+    constructor(opts: any, testSolid: (x: number, y: number, z: number) => boolean, testFluid: (x: number, y: number, z: number) => boolean);
     gravity: any;
     airDrag: any;
     fluidDensity: any;
     fluidDrag: any;
     minBounceImpulse: any;
     bodies: any[];
-    testSolid: any;
-    testFluid: any;
+    testSolid: (x: number, y: number, z: number) => boolean;
+    testFluid: (x: number, y: number, z: number) => boolean;
     /**
      * Adds a physics body to the simulation
      * @returns {RigidBody}
