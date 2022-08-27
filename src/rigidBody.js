@@ -1,6 +1,6 @@
 
-var aabb = require('aabb-3d')
-var vec3 = require('gl-vec3')
+import aabb from 'aabb-3d'
+import vec3 from 'gl-vec3'
 
 var DEBUG = 0
 

@@ -47,8 +47,8 @@ phys.removeBody( body )
   
 #### Changes in latest version:
 
- * `0.11.0`
-   * Export a named constructor function instead of a callback
+ * `0.13.0` - minor fixes to typing and internals
+ * `0.11.0` - export a named constructor function instead of a callback
  * `0.10.0`
    * Fixes `body.onCollide` arg to be a correctly scaled impulse vector
    * Body `onCollide` now passed before bounces are resolved (allowing client to adjust `body.restitution` depending on the terrain)

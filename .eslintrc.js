@@ -1,9 +1,8 @@
-module.exports = {
+export var config = {
     "extends": "eslint:recommended",
     "env": {
         "browser": true,
         "es6": true,
-        "commonjs": true,
     },
     "rules": {
         "strict": ["error", "global"],
