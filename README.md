@@ -13,7 +13,7 @@ though it works quite differently and behaves more physically.
 The engine can be seen in action in [noa](https://github.com/fenomas/noa) or projects using it
 (such as [this talk on voxels](http://fenomas.github.io/noa-lt/).
 
-###Usage:
+### Usage:
  1. Create engine and supply a `getBlock(x,y,z)`-like function (which should return true when block xyz is solid)
  1. Register rigid bodies with `var body = addBody(..)`
  1. Control them with `body.addImpulse[0,1,0]` and so on
