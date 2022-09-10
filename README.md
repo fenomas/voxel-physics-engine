@@ -1,35 +1,32 @@
 # voxel-physics-engine
-An abstracted physics engine for voxel game engines.
 
-This implements reasonably realistic physics for voxel games.
-It was made to work with [noa](https://github.com/fenomas/noa) 
-or `voxel.js`, but it just takes references to 
-an abstracted `getBlock(x,y,z)` function and plain vectors, 
-so it can be used with other engines. 
+Abstracted terrain physics for voxel game engines.
 
-This replaces [voxel-physical](https://github.com/chrisdickinson/voxel-physical),
-though it works quite differently and behaves more physically.
+This implements reasonably realistic physics for voxel games. It was made to work with [noa](https://github.com/fenomas/noa) or `voxel.js`, but all it requires is abstracted `(x,y,z) => boolean` test functions for voxel properties, so it can be used with any engine.
 
-The engine can be seen in action in [noa](https://github.com/fenomas/noa) or projects using it
-(such as [this talk on voxels](http://fenomas.github.io/noa-lt/).
+This library replaces [voxel-physical](https://github.com/chrisdickinson/voxel-physical), though it works quite differently and behaves more physically. The engine can be seen in action in [noa](https://github.com/fenomas/noa) or projects using it.
+
+Note: this simple engine only handles collisions between bodies and solid voxels. It does not handle collisions between rigid bodies, or non-cubic voxels.
+
 
 ### Usage:
- 1. Create engine and supply a `getBlock(x,y,z)`-like function (which should return true when block xyz is solid)
- 1. Register rigid bodies with `var body = addBody(..)`
- 1. Control them with `body.addImpulse[0,1,0]` and so on
- 1. Call `tick(dt)`
+ 1. Create engine and supply a `(x,y,z) => boolean` functions that return whether a given voxel is solid or liquid.
+ 1. Add rigid bodies with `var body = addBody(..)`
+ 1. Modify body properties, or call its methods to apply forces, impulses, etc.
+ 1. Call `tick(dt)` on the engine object
 
-and the engine will manage all the physics and collisions.
+and the engine will update each body and handle voxel collisions.
 
 #### Example
 
 ``` javascript
-import {Physics} from 'voxel-physics-engine'
-var opts = { gravity: [0,-10,0] }
-var getter = function(x,y,z) { /* your logic here */ }
+import { Physics } from 'voxel-physics-engine'
+var opts = { gravity: [0, -10, 0] }
+var voxelIsSolid = (x, y, z) => (y < 0)
+var voxelIsLiquid = (x, y, z) => (x > 5)
 
-var phys = new Physics(opts, getter)
-var body = phys.addBody( aabb, mass, friction, restitution, gravityMult, onCollide, autoStep )
+var phys = new Physics(opts, voxelIsSolid, voxelIsLiquid)
+var body = phys.addBody( aabb, mass, friction, restitution, gravityMult, onCollide )
 phys.tick( dt_in_miliseconds )
 phys.removeBody( body )
 ```
@@ -40,10 +37,10 @@ phys.removeBody( body )
  * Query the body's `resting[axis]` property (-1,0,1 on each axis) to tell if it's currently touching a solid voxel.
    E.g. `body.resting[1]` is `1` when the body is colliding with the ceiling.
  * Collisions with terrain trigger each body's `onCollide(impacts)` callback. 
-   The argument is a `vec3` of the change in velocity on each axis, so multiply by mass if you want the impulse.
+   The argument is a `vec3` of the collision impulse on each axis.
    (A body resting on the ground will produce a small impact each tick due to gravity.)
  * If you set a body's `autoStep` property, the engine will cause it to 
-   automatically "step" up hills (i.e. 1-block obstructions).
+   automatically "step" onto one-block obstructions.
   
 #### Changes in latest version:
 
