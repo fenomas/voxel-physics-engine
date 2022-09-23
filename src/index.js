@@ -325,11 +325,7 @@ function applyFrictionByAxis(self, axis, body, dvel, dt) {
     //        dvF = dt * Ff / m
     //            = dt * (u * m * dvnormal / dt) / m
     //            = u * dvnormal
-    var dvMax = Math.abs(body.friction * vNormal)
-    if (Math.abs(vNormal) < Math.abs(self.gravity[axis]*dt)) {
-        // Apply a gravityMultiplier 1 of vNormal if actual vNormal is less than that (because no gravity but we are alwaysApplyHorizFriction)
-        dvMax = Math.abs(body.friction * self.gravity[axis]*dt)
-    }
+    var dvMax = Math.abs(body.friction * self.gravity[axis]*dt)
 
     // decrease lateral vel by dvMax (or clamp to zero)
     var scaler = (vCurr > dvMax) ? (vCurr - dvMax) / vCurr : 0
