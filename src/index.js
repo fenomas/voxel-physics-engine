@@ -281,9 +281,9 @@ function applyFluidForces(self, body) {
     if (ratioInFluid > 1) ratioInFluid = 1
     var vol = box.vec[0] * box.vec[1] * box.vec[2]
     var displaced = vol * ratioInFluid
-    // bouyant force = -gravity * fluidDensity * volumeDisplaced
+    // bouyant force = -gravity * fluidDensity * volumeDisplaced * gravityMultiplier
     var f = _fluidVec
-    vec3.scale(f, self.gravity, -self.fluidDensity * displaced)
+    vec3.scale(f, self.gravity, -self.fluidDensity * displaced * body.gravityMultiplier)
     body.applyForce(f)
 
     body.inFluid = true
