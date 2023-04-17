@@ -26,6 +26,7 @@ export class RigidBody {
 
         this.preventFallOffEdge = false
         this.alwaysApplyHorizFriction = false
+        this.rolledBackLastTick = false
 
         // internal state
         this.velocity = vec3.create()
@@ -61,6 +62,7 @@ export class RigidBody {
         this.onStep = loadFrom.onStep
 
         this.preventFallOffEdge = loadFrom.preventFallOffEdge
+        this.rolledBackLastTick = loadFrom.rolledBackLastTick
     
         vec3.copy(this.velocity, loadFrom.velocity)
         vec3.copy(this.resting, loadFrom.resting)

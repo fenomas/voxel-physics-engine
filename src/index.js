@@ -239,6 +239,10 @@ function iterateBody(self, b, dt, noGravity) {
     // If the body is now inside an unloaded block, rollback the body to before they were inside it.
     if (self.isBodyInsideUnloadedBlock && self.isBodyInsideUnloadedBlock(b)) {
         b.loadFromCopy(rollbackBody)
+        b.rolledBackLastTick = true
+    }
+    else {
+        b.rolledBackLastTick = false
     }
 }
 
