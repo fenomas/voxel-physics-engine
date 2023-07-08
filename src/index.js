@@ -198,7 +198,7 @@ function iterateBody(self, b, dt, noGravity) {
     }
 
     // sweeps aabb along dx and accounts for collisions
-    processCollisions(self, b.aabb, dx, b.resting)
+    processCollisions(self, b.aabb, dx, b.resting, b.slideOnCollision)
 
     // if autostep, and on ground, run collisions again with stepped up aabb
     if (b.autoStep) {
@@ -309,7 +309,7 @@ function applyFrictionByAxis(self, axis, body, dvel, dt) {
     // friction applies only if moving into a touched surface
     var restDir = body.resting[axis]
     var vNormal = dvel[axis]
-    if (!body.alwaysApplyHorizFriction || axis !== 1) {
+    if (!body.alwaysApplyHorizFriction || axis !== 1) { // bloxd change - add option to always apply friction along the horizontal axis even if not in contact with surface. So e.g. movement control in air feels same as on ground
         if (restDir === 0) return
         if (restDir * vNormal <= 0) return
     }
@@ -348,11 +348,16 @@ var lateralVel = vec3.create()
 */
 
 // sweep aabb along velocity vector and set resting vector
-function processCollisions(self, box, velocity, resting) {
+function processCollisions(self, box, velocity, resting, slideOnCollision) {
     vec3.set(resting, 0, 0, 0)
     return sweep(self.testSolid, box, velocity, function (dist, axis, dir, vec) {
         resting[axis] = dir
         vec[axis] = 0
+        if (!slideOnCollision) { // Bloxd change - this is useful for e.g. arrow hitting terrain
+            vec[0] = 0
+            vec[1] = 0
+            vec[2] = 0
+        }
     })
 }
 
@@ -408,7 +413,7 @@ function tryAutoStepping(self, b, oldBox, dx) {
     // now move in X/Z however far was left over before hitting the obstruction
     vec3.subtract(leftover, targetPos, oldBox.base)
     leftover[1] = 0
-    processCollisions(self, oldBox, leftover, tmpResting)
+    processCollisions(self, oldBox, leftover, tmpResting, true)
 
     // bail if no movement happened in the originally blocked direction
     var xMovedToTarget = equals(oldBox.base[0], targetPos[0])
@@ -462,7 +467,7 @@ function tryPreventFallOffEdge(self, b, dx, preventFallResting) {
         }
         else if (i === 0) {
             vec3.set(preventFallXPush, dx[0], 0, 0)
-            processCollisions(self, t, preventFallXPush, preventFallResting)
+            processCollisions(self, t, preventFallXPush, preventFallResting, b.slideOnCollision)
         }
     }
 }

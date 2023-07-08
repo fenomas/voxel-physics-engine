@@ -26,6 +26,7 @@ export class RigidBody {
 
         this.preventFallOffEdge = false
         this.alwaysApplyHorizFriction = false
+        this.slideOnCollision = true
         this.rolledBackLastTick = false
 
         // internal state
