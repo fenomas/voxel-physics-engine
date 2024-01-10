@@ -399,7 +399,7 @@ function tryAutoStepping(self, b, oldBox, dx) {
         else return true
     })
 
-    var y = b.aabb.base[1]
+    var y = oldBox.base[1]
     var ydist = Math.floor(y + 1.001) - y
     vec3.set(upvec, 0, ydist, 0)
     var collided = false
