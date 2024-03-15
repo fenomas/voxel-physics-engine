@@ -22,6 +22,8 @@ export class RigidBody {
         this.autoStep = !!autoStep
         this.airDrag = -1   // overrides global airDrag when >= 0
         this.fluidDrag = -1 // overrides global fluidDrag when >= 0
+        this.fluidDragVert = -1 // overrides fluidDrag for vertical axis when >= 0
+        this.fluidDragHor = -1 // overrides fluidDrag for horizontal axes when >= 0
         this.onStep = null
 
         this.preventFallOffEdge = false

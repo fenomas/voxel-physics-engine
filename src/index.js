@@ -171,14 +171,20 @@ function iterateBody(self, b, dt, noGravity) {
 
     // linear air or fluid friction - effectively v *= drag
     // body settings override global settings
-    var drag = (b.airDrag >= 0) ? b.airDrag : self.airDrag
-    if (b.inFluid) {
-        drag = (b.fluidDrag >= 0) ? b.fluidDrag : self.fluidDrag
-        drag *= 1 - (1 - b.ratioInFluid) ** 2
+    var getDrag = (axisFluidDrag) => {
+        var drag = (b.airDrag >= 0) ? b.airDrag : self.airDrag
+        if (b.inFluid) {
+            drag = axisFluidDrag
+            drag *= 1 - (1 - b.ratioInFluid) ** 2
+        }
+        return Math.max(1 - drag * dt / b.mass, 0)
     }
-    var mult = Math.max(1 - drag * dt / b.mass, 0)
-    vec3.scale(b.velocity, b.velocity, mult)
 
+    var fluidDrag = (b.fluidDrag >= 0) ? b.fluidDrag : self.fluidDrag
+    var horDrag = getDrag(b.fluidDragHor >= 0 ? b.fluidDragHor : fluidDrag)
+    var vertDrag = getDrag(b.fluidDragVert >= 0 ? b.fluidDragVert : fluidDrag)
+    vec3.multiply(b.velocity, b.velocity, [horDrag, vertDrag, horDrag])
+    
     // x1-x0 = v1*dt
     vec3.scale(dx, b.velocity, dt)
 
